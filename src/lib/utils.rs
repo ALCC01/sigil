@@ -26,19 +26,19 @@ pub fn unlock_file(path: &PathBuf, ctx: &mut Context) -> Result<String, Box<Erro
 /// Parses an encrypted vault to `Vault`
 pub fn read_vault(path: &PathBuf, ctx: &mut Context) -> Result<Vault, Box<Error>> {
     let string = unlock_file(&path, ctx)?;
-    let vault: Vault = serde_json::from_str(&string)?;
+    let vault: Vault = toml::from_str(&string)?;
 
     Ok(vault)
 }
 
-/// Serializes a `Vault` to an encrypted JSON file
+/// Serializes a `Vault` to an encrypted TOML file
 pub fn write_vault(
     path: &PathBuf,
     vault: &Vault,
     ctx: &mut Context,
     key: &str,
 ) -> Result<(), Box<Error>> {
-    let mut input: Vec<u8> = Vec::from(serde_json::to_string_pretty(&vault)?);
+    let mut input: Vec<u8> = Vec::from(toml::to_string(&vault)?);
 
     let keys = vec![key];
     let keys: Vec<Key> = ctx

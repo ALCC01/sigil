@@ -11,7 +11,7 @@ extern crate log;
 extern crate serde_derive;
 extern crate gpgme;
 extern crate serde;
-extern crate serde_json;
+extern crate toml;
 
 /// A macro that expands to a `trace!` with the file name and line
 macro_rules! tracepoint {
