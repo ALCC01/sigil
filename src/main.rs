@@ -34,7 +34,6 @@ macro_rules! question {
     };
 }
 
-use failure::Error;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -79,14 +78,17 @@ enum Sigil {
     },
 }
 
-fn main() -> Result<(), Error> {
+fn main() {
     env_logger::init();
     tracepoint!();
     let sigil = Sigil::from_args();
 
-    match sigil {
+    let res = match sigil {
         Sigil::Touch { vault, key, force } => cli::touch::touch_vault(&vault, key, force),
         Sigil::Add { vault, key } => cli::add::add_record(&vault, key),
         Sigil::GetPassword { vault, record } => cli::get::get_password(&vault, record),
+    };
+    if let Err(err) = res {
+        eprintln!("Error: {}", err);
     }
 }
