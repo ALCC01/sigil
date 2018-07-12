@@ -44,6 +44,19 @@ mod lib;
 #[derive(Debug, StructOpt)]
 #[structopt(name = "sigil", about = "GPG-backed password manager")]
 enum Sigil {
+    #[structopt(name = "touch")]
+    /// Initialize an empty vault file
+    Touch {
+        #[structopt(parse(from_os_str))]
+        /// Path to the vault
+        vault: PathBuf,
+        #[structopt(short = "K", long = "key")]
+        /// The GPG key
+        key: Option<String>,
+        #[structopt(short = "f", long = "force", takes_value = false)]
+        /// Overwrite an existing file
+        force: bool,
+    },
     #[structopt(name = "add")]
     /// Add a password to a vault
     Add {
@@ -72,6 +85,7 @@ fn main() -> Result<(), Error> {
     let sigil = Sigil::from_args();
 
     match sigil {
+        Sigil::Touch { vault, key, force } => cli::touch::touch_vault(&vault, key, force),
         Sigil::Add { vault, key } => cli::add::add_record(&vault, key),
         Sigil::GetPassword { vault, record } => cli::get::get_password(&vault, record),
     }

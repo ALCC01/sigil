@@ -4,6 +4,10 @@ pub enum VaultError {
     ShouldUpdate,
     #[fail(display = "Failed to find record {}", 0)]
     UnknownRecord(String),
+    #[fail(display = "Vault path already exists")]
+    Overwriting,
+    #[fail(display = "Vault path is a directory")]
+    VaultIsADirectory,
 }
 
 #[derive(Debug, Fail)]
