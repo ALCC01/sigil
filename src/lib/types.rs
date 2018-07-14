@@ -19,6 +19,18 @@ impl Vault {
         }
     }
 
+    pub fn remove_record(&mut self, record_id: String) -> Result<(), VaultError> {
+        tracepoint!();
+        let r = record_id.clone(); // We need ownership if we need to build an error
+        match self.services.entry(record_id) {
+            Entry::Occupied(entry) => {
+                entry.remove();
+                Ok(())
+            }
+            _ => Err(VaultError::UnknownRecord(r)),
+        }
+    }
+
     pub fn get_record(&self, record_id: String) -> Result<&Record, VaultError> {
         tracepoint!();
         if let Some(record) = self.services.get(&record_id) {

@@ -76,6 +76,18 @@ enum Sigil {
         /// The GPG key
         key: Option<String>,
     },
+    #[structopt(name = "rm")]
+    /// Remove a record from a vault
+    Remove {
+        #[structopt(short = "V", long = "vault", parse(from_os_str))]
+        /// Path to the vault
+        vault: PathBuf,
+        #[structopt(short = "K", long = "key")]
+        /// The GPG key
+        key: Option<String>,
+        /// Record name
+        record: String,
+    },
     #[structopt(name = "get")]
     /// Get a password from a vault
     GetPassword {
@@ -97,6 +109,7 @@ fn main() {
         Sigil::Touch { vault, key, force } => cli::touch::touch_vault(&vault, key, force),
         Sigil::List { vault, disclose } => cli::list::list_vault(&vault, disclose),
         Sigil::Add { vault, key } => cli::add::add_record(&vault, key),
+        Sigil::Remove { vault, key, record } => cli::remove::remove_record(&vault, key, record),
         Sigil::GetPassword { vault, record } => cli::get::get_password(&vault, record),
     };
     if let Err(err) = res {
