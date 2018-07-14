@@ -9,7 +9,9 @@ extern crate failure;
 extern crate log;
 #[macro_use]
 extern crate serde_derive;
+extern crate base32;
 extern crate gpgme;
+extern crate ring;
 extern crate serde;
 extern crate toml;
 
@@ -98,6 +100,41 @@ enum Sigil {
         /// Record name
         record: String,
     },
+    #[structopt(name = "otp")]
+    /// Operate on OTP records in a vault
+    Otp {
+        #[structopt(short = "V", long = "vault", parse(from_os_str))]
+        /// Path to the vault
+        vault: PathBuf,
+        #[structopt(short = "K", long = "key")]
+        /// The GPG key to use for encryption
+        key: Option<String>,
+        #[structopt(subcommand)]
+        cmd: OtpCommand,
+    },
+}
+
+#[derive(Debug, StructOpt)]
+enum OtpCommand {
+    #[structopt(name = "add")]
+    /// Add an OTP generator to a vault
+    Add,
+    #[structopt(name = "rm")]
+    /// Remove an OTP generator
+    Remove {
+        #[structopt()]
+        /// Record name
+        record: String,
+    },
+    #[structopt(name = "token")]
+    /// Generate an OTP token
+    GetToken {
+        #[structopt()]
+        /// Record name
+        record: String,
+        /// Counter for HOTP, ignored for TOTP
+        counter: Option<u64>,
+    },
 }
 
 fn main() {
@@ -111,6 +148,13 @@ fn main() {
         Sigil::Add { vault, key } => cli::add::add_record(&vault, key),
         Sigil::Remove { vault, key, record } => cli::remove::remove_record(&vault, key, record),
         Sigil::GetPassword { vault, record } => cli::get::get_password(&vault, record),
+        Sigil::Otp { vault, key, cmd } => match cmd {
+            OtpCommand::Add => cli::otp::add::add_record(&vault, key),
+            OtpCommand::GetToken { record, counter } => {
+                cli::otp::token::get_token(&vault, record, counter)
+            }
+            OtpCommand::Remove { record } => cli::otp::remove::remove_record(&vault, key, record),
+        },
     };
     if let Err(err) = res {
         eprintln!("Error: {}", err);

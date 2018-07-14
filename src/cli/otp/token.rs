@@ -2,26 +2,25 @@ use failure::Error;
 use lib::utils;
 use std::path::PathBuf;
 
-/// Lists all records in a vault
+/// Generates an OTP token
 /**
  * Blueprint
- *  1. `read_vault`, bail on error
- *  2. `vault.display`
+ *  1. `read_vault`, `vault::get_otp_record`, bail on error
+ *  2. Generate a token, bail on error
  */
-pub fn list_vault(vault: &PathBuf, disclose: bool) -> Result<(), Error> {
+pub fn get_token(vault: &PathBuf, record_id: String, counter: Option<u64>) -> Result<(), Error> {
     tracepoint!();
-    let vault_path = vault.clone(); // `vault` will be shadowed later on
 
     // (1)
     // Acquire a GPGME context
     // TODO Can we handle these failures more nicely?
     let mut ctx = utils::create_context().unwrap();
     let vault = utils::read_vault(&vault, &mut ctx).unwrap();
+    let record = vault.get_otp_record(record_id)?;
 
     // (2)
     tracepoint!();
-    println!("{}", vault_path.display());
-    print!("{}", vault.display(disclose, 0));
+    println!("{}", record.generate_token(counter)?);
 
     Ok(())
 }

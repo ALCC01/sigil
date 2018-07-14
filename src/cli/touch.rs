@@ -40,7 +40,8 @@ pub fn touch_vault(vault: &PathBuf, key: Option<String>, force: bool) -> Result<
 
     // (3)
     let vault = Vault {
-        services: HashMap::new(),
+        passwords: HashMap::new(),
+        otps: HashMap::new(),
     };
 
     // (4)
