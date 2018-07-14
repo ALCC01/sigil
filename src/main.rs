@@ -56,6 +56,16 @@ enum Sigil {
         /// Overwrite an existing file
         force: bool,
     },
+    #[structopt(name = "ls")]
+    /// List all records in a vault
+    List {
+        #[structopt(parse(from_os_str))]
+        /// Path to the vault
+        vault: PathBuf,
+        #[structopt(long = "disclose", takes_value = false)]
+        /// Disclose secrets
+        disclose: bool,
+    },
     #[structopt(name = "add")]
     /// Add a password to a vault
     Add {
@@ -85,6 +95,7 @@ fn main() {
 
     let res = match sigil {
         Sigil::Touch { vault, key, force } => cli::touch::touch_vault(&vault, key, force),
+        Sigil::List { vault, disclose } => cli::list::list_vault(&vault, disclose),
         Sigil::Add { vault, key } => cli::add::add_record(&vault, key),
         Sigil::GetPassword { vault, record } => cli::get::get_password(&vault, record),
     };

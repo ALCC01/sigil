@@ -27,6 +27,29 @@ impl Vault {
             Err(VaultError::UnknownRecord(record_id))
         }
     }
+
+    pub fn display(&self, disclose: bool, depth: usize, last: bool) -> String {
+        let mut buff = String::new();
+        let prefix = if !last { "│  " } else { "   " }.repeat(depth);
+
+        self.services.iter().enumerate().for_each(|(i, record)| {
+            buff += &format!(
+                "{}{}─ {}\n",
+                prefix,
+                if i != self.services.len() - 1 {
+                    "├"
+                } else {
+                    "└"
+                },
+                record.0
+            );
+            buff += &record
+                .1
+                .display(disclose, depth + 1, i == self.services.len() - 1);
+        });
+
+        buff
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -35,4 +58,46 @@ pub struct Record {
     pub email: Option<String>,
     pub password: Option<String>,
     pub home: Option<String>,
+}
+
+impl Record {
+    pub fn display(&self, disclose: bool, depth: usize, last: bool) -> String {
+        let mut buff = String::new();
+        let prefix = if !last { "│  " } else { "   " }.repeat(depth);
+
+        if self.home.is_some() {
+            buff += &format!(
+                "{}├─ {}: {}\n",
+                prefix,
+                "Home",
+                self.home.clone().unwrap()
+            );
+        }
+        if self.username.is_some() {
+            buff += &format!(
+                "{}├─ {}: {}\n",
+                prefix,
+                "Username",
+                self.username.clone().unwrap()
+            );
+        }
+        if self.email.is_some() {
+            buff += &format!(
+                "{}├─ {}: {}\n",
+                prefix,
+                "Email",
+                self.email.clone().unwrap()
+            );
+        }
+        if self.password.is_some() && disclose {
+            buff += &format!(
+                "{}├─ {}: {}\n",
+                prefix,
+                "Password",
+                self.password.clone().unwrap()
+            );
+        }
+
+        buff
+    }
 }
