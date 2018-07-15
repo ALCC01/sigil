@@ -50,6 +50,12 @@ pub enum OtpCommand {
     #[structopt(name = "add")]
     /// Add an OTP generator to a vault
     Add,
+    #[structopt(name = "import")]
+    /// Import an OTP generator to a vault using an `otpauth://` URI
+    ImportUrl {
+        #[structopt()]
+        url: String,
+    },
     #[structopt(name = "rm")]
     /// Remove an OTP generator
     Remove {

@@ -13,6 +13,7 @@ extern crate gpgme;
 extern crate ring;
 extern crate serde;
 extern crate toml;
+extern crate url;
 
 /// A macro that expands to a `trace!` with the file name and line
 /// Disabled in releases
@@ -59,6 +60,7 @@ fn main() {
         },
         Command::Otp { cmd } => match cmd {
             OtpCommand::Add => cli::otp::add_record(&vault, key),
+            OtpCommand::ImportUrl { url } => cli::otp::import_url(&vault, key, &url),
             OtpCommand::GetToken { record, counter } => {
                 cli::otp::get_token(&vault, record, counter)
             }
