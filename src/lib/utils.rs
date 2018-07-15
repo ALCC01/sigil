@@ -3,6 +3,7 @@ use lib::types::Vault;
 use std::error::Error;
 use std::fs::{write, File};
 use std::path::PathBuf;
+use toml::{from_str, to_string};
 
 /// Creates a GPGME context using the OpenPgp protocol and armor by default
 pub fn create_context() -> Result<Context, Box<Error>> {
@@ -26,7 +27,7 @@ pub fn unlock_file(path: &PathBuf, ctx: &mut Context) -> Result<String, Box<Erro
 /// Parses an encrypted vault to `Vault`
 pub fn read_vault(path: &PathBuf, ctx: &mut Context) -> Result<Vault, Box<Error>> {
     let string = unlock_file(&path, ctx)?;
-    let vault: Vault = toml::from_str(&string)?;
+    let vault: Vault = from_str(&string)?;
 
     Ok(vault)
 }
@@ -38,7 +39,7 @@ pub fn write_vault(
     ctx: &mut Context,
     key: &str,
 ) -> Result<(), Box<Error>> {
-    let mut input: Vec<u8> = Vec::from(toml::to_string(&vault)?);
+    let mut input: Vec<u8> = Vec::from(to_string(&vault)?);
 
     let keys = vec![key];
     let keys: Vec<Key> = ctx

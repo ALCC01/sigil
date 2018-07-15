@@ -3,6 +3,7 @@ use lib::error;
 use lib::types::Vault;
 use lib::utils;
 use std::collections::HashMap;
+use std::env;
 use std::path::PathBuf;
 
 /// Creates an empty vault file
@@ -24,7 +25,7 @@ pub fn touch_vault(vault: &PathBuf, key: Option<String>, force: bool) -> Result<
     let mut ctx = utils::create_context().unwrap();
     // A key can either be provided as an argument or an environment var
     let key = key
-        .or_else(|| std::env::var_os("GPGKEY").map(|n| n.to_string_lossy().to_string()))
+        .or_else(|| env::var_os("GPGKEY").map(|n| n.to_string_lossy().to_string()))
         .ok_or(error::NoKeyError())?
         .to_owned();
 

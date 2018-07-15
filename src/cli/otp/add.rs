@@ -35,10 +35,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
     // TODO Can we handle this failure more nicely?
     let mut ctx = utils::create_context().unwrap();
     // A key can either be provided as an argument or an environment var
-    let key = key
-        .or_else(|| std::env::var_os("GPGKEY").map(|n| n.to_string_lossy().to_string()))
-        .ok_or(error::NoKeyError())?
-        .to_owned();
+    let key = key.ok_or(error::NoKeyError())?;
 
     //(2)
     tracepoint!();

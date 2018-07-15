@@ -29,10 +29,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
     // TODO Can we handle this failure more nicely?
     let mut ctx = utils::create_context().unwrap();
     // A key can either be provided as an argument or an environment var
-    let key = key
-        .or_else(|| std::env::var_os("GPGKEY").map(|n| n.to_string_lossy().to_string()))
-        .ok_or(error::NoKeyError())?
-        .to_owned();
+    let key = key.ok_or(error::NoKeyError())?;
 
     // (2.a)
     let service = question!("What service is this password for? ")?;
@@ -87,7 +84,10 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
     // (4)
     tracepoint!();
     let record_id_default = record_id(&record, &service.to_owned());
-    let record_id = question!("What should this record be called? [{}] ", record_id_default)?;
+    let record_id = question!(
+        "What should this record be called? [{}] ",
+        record_id_default
+    )?;
     let mut record_id = record_id.trim().to_owned();
     if record_id.is_empty() {
         record_id = record_id_default;

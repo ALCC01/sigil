@@ -8,6 +8,8 @@ pub enum VaultError {
     Overwriting,
     #[fail(display = "Vault path is a directory")]
     VaultIsADirectory,
+    #[fail(display = "No vault path provided")]
+    NoVault,
 }
 
 #[derive(Debug, Fail)]
