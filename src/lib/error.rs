@@ -8,7 +8,9 @@ pub enum VaultError {
     Overwriting,
     #[fail(display = "Vault path is a directory")]
     VaultIsADirectory,
-    #[fail(display = "No vault path provided")]
+    #[fail(
+        display = "No vault path was provided either as an argument or as an environment variable"
+    )]
     NoVault,
 }
 
@@ -23,6 +25,10 @@ pub struct MandatoryArgumentAbsentError();
 #[derive(Debug, Fail)]
 #[fail(display = "Failed to find field {} on record", 0)]
 pub struct NoSuchField(pub String);
+
+#[derive(Debug, Fail)]
+#[fail(display = "Failed to create a GPG cryptographic context")]
+pub struct GgpContextCreationFailed();
 
 #[derive(Debug, Fail)]
 pub enum OtpError {

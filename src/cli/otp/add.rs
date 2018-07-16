@@ -1,4 +1,5 @@
 use failure::{Error, Fail};
+use gpgme::Context;
 use lib::types::OtpRecord;
 use lib::{error, otp, utils};
 use std::path::PathBuf;
@@ -6,9 +7,8 @@ use std::path::PathBuf;
 /// Adds an OTP record to the specified vault
 /**
  * Blueprint
- *  1. Get the enc key from the user or the environment, otherwise bail
- *  2. Get the OTP record kind from the user (allow Hotp and Totp)
- *  3. Get the information necessary to construct a record from the user or from
+ *  1. Get the OTP record kind from the user (allow Hotp and Totp)
+ *  2. Get the information necessary to construct a record from the user or from
  *     the args. Bail if mandatory info is not provided. Trim all strings.
  *      a) Hotp
  *          i) Secret: mandatory
@@ -21,40 +21,29 @@ use std::path::PathBuf;
  *          iii) Algorithm: default to SHA1
  *          iv) Period: default to 30s
  *          v) Digits: default to 6
- *  4. Construct a `OtpRecord`
- *  5. Get a record ID from the user, bail if not provided
- *  6. `read_vault`, `vault::add_otp_record`, `write_vault`, bail on error
+ *  3. Construct a `OtpRecord`
+ *  4. Get a record ID from the user, bail if not provided
+ *  5. `read_vault`, `vault::add_otp_record`, `write_vault`, bail on error
  */
 // TODO Compact question boilerplate
-pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
+pub fn add_record(vault_path: &PathBuf, key: &str, mut ctx: Context) -> Result<(), Error> {
     tracepoint!();
-    let vault_path = vault.clone(); // `vault` will be shadowed later on
 
     // (1)
-    // Acquire a GPGME context
-    // TODO Can we handle this failure more nicely?
-    let mut ctx = utils::create_context().unwrap();
-    // A key can either be provided as an argument or an environment var
-    let key = key.ok_or(error::NoKeyError())?;
-
-    //(2)
-    tracepoint!();
     let kind = question!("What kind of OTP should this record implement? (Hotp|Totp) ")?;
     let kind = kind.trim().to_ascii_lowercase();
 
     let record = match &kind[..] {
-        // (2.a)
+        // (1.a)
         "hotp" => {
-            tracepoint!();
-
-            // (2.a.i)
+            // (1.a.i)
             let secret = question!("What is the secret? ")?;
             let secret = secret.trim().to_string();
             if secret.is_empty() {
                 Err(error::MandatoryArgumentAbsentError().context("A secret must be provided"))?
             }
 
-            // (2.a.ii)
+            // (1.a.ii)
             let issuer = question!("What is the issuer of this secret? [None] ")?;
             let issuer = issuer.trim();
             let issuer = if issuer.is_empty() {
@@ -63,7 +52,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
                 Some(issuer.to_owned())
             };
 
-            // (2.a.iii)
+            // (1.a.iii)
             let algorithm = question!(
                 "What algorithm should be used to generate secrets? ([SHA1]|SHA256|SHA512) "
             )?;
@@ -75,7 +64,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
             };
             otp::string_to_algorithm(&algorithm)?;
 
-            // (2.a.iv)
+            // (1.a.iv)
             let digits = question!("How many digits should a token be made of? [6] ")?;
             let digits = digits.trim();
             let digits: u32 = if digits.is_empty() {
@@ -84,7 +73,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
                 digits.parse()?
             };
 
-            // (4)
+            // (3)
             OtpRecord::Hotp {
                 secret,
                 issuer,
@@ -92,18 +81,16 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
                 digits,
             }
         }
-        // (2.b)
+        // (1.b)
         "totp" => {
-            tracepoint!();
-
-            // (2.b.i)
+            // (1.b.i)
             let secret = question!("What is the secret? ")?;
             let secret = secret.trim().to_string();
             if secret.is_empty() {
                 Err(error::MandatoryArgumentAbsentError().context("A secret must be provided"))?
             }
 
-            // (2.b.ii)
+            // (1.b.ii)
             let issuer = question!("What is the issuer of this secret? [None] ")?;
             let issuer = issuer.trim();
             let issuer = if issuer.is_empty() {
@@ -112,7 +99,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
                 Some(issuer.to_owned())
             };
 
-            // (2.b.iii)
+            // (1.b.iii)
             let algorithm = question!(
                 "What algorithm should be used to generate secrets? ([SHA1]|SHA256|SHA512) "
             )?;
@@ -124,7 +111,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
             };
             otp::string_to_algorithm(&algorithm)?;
 
-            // (2.b.iv)
+            // (1.b.iv)
             let period =
                 question!("After how many seconds should a new token be generated? [30] ")?;
             let period = period.trim();
@@ -134,7 +121,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
                 period.parse()?
             };
 
-            // (2.b.v)
+            // (1.b.v)
             let digits = question!("How many digits should a token be made of? [6] ")?;
             let digits = digits.trim();
             let digits: u32 = if digits.is_empty() {
@@ -143,7 +130,7 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
                 digits.parse()?
             };
 
-            // (4)
+            // (3)
             OtpRecord::Totp {
                 secret,
                 issuer,
@@ -156,7 +143,6 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
     };
 
     // (4)
-    tracepoint!();
     let record_id = question!("What should this generator be called? ")?;
     let record_id = record_id.trim().to_owned();
     if record_id.is_empty() {
@@ -166,9 +152,9 @@ pub fn add_record(vault: &PathBuf, key: Option<String>) -> Result<(), Error> {
     // (5)
     // TODO These unwraps are due to the fact that the errors cannot be made
     // into failure::Error's. Find a workaround
-    tracepoint!();
-    let mut vault = utils::read_vault(&vault, &mut ctx).unwrap();
+    let mut vault = utils::read_vault(&vault_path, &mut ctx).unwrap();
     vault.add_otp_record(record, record_id)?;
     utils::write_vault(&vault_path, &vault, &mut ctx, &key).unwrap();
+
     Ok(())
 }

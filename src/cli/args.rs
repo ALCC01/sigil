@@ -1,3 +1,7 @@
+use cli;
+use failure::Error;
+use lib::{error, utils};
+use std::env;
 use std::path::PathBuf;
 
 #[derive(Debug, StructOpt)]
@@ -92,4 +96,41 @@ pub enum PasswordCommand {
         /// Record name
         record: String,
     },
+}
+
+pub fn match_args(sigil: Sigil) -> Result<(), Error> {
+    // Try to fetch sigil key and vault from the environment
+    // Not all commands will need these
+    let key = sigil
+        .key
+        .or_else(|| env::var_os("GPGKEY").map(|n| n.to_string_lossy().to_string()))
+        .ok_or(error::NoKeyError());
+    let vault = sigil
+        .vault
+        .or_else(|| env::var_os("SIGIL_VAULT").map(PathBuf::from))
+        .ok_or(error::VaultError::NoVault);
+    // Not all commands will need a context
+    let ctx = utils::create_context().map_err(|_| error::GgpContextCreationFailed());
+
+    match sigil.cmd {
+        Command::Touch { force } => cli::touch::touch_vault(&vault?, &key?, force),
+        Command::List { disclose } => cli::list::list_vault(&vault?, disclose),
+        Command::Password { cmd } => match cmd {
+            PasswordCommand::Add => cli::password::add_record(&vault?, &key?, ctx?),
+            PasswordCommand::Remove { record } => {
+                cli::password::remove_record(&vault?, &key?, ctx?, record)
+            }
+            PasswordCommand::GetPassword { record } => {
+                cli::password::get_password(&vault?, ctx?, record)
+            }
+        },
+        Command::Otp { cmd } => match cmd {
+            OtpCommand::Add => cli::otp::add_record(&vault?, &key?, ctx?),
+            OtpCommand::ImportUrl { url } => cli::otp::import_url(&vault?, &key?, ctx?, &url),
+            OtpCommand::GetToken { record, counter } => {
+                cli::otp::get_token(&vault?, ctx?, record, counter)
+            }
+            OtpCommand::Remove { record } => cli::otp::remove_record(&vault?, &key?, ctx?, record),
+        },
+    }
 }

@@ -27,46 +27,17 @@ macro_rules! tracepoint {
 mod cli;
 mod lib;
 
-use cli::args::{Command, OtpCommand, PasswordCommand, Sigil};
-use lib::error;
-use std::env;
-use std::path::PathBuf;
+use cli::args::{match_args, Sigil};
 use structopt::StructOpt;
 
 fn main() {
     env_logger::init();
     tracepoint!();
+    // Parse CLI arguments
     let sigil = Sigil::from_args();
-
-    // The command will decide if it needs a key
-    let key = sigil
-        .key
-        .or_else(|| env::var_os("GPGKEY").map(|n| n.to_string_lossy().to_string()));
-
-    // Can't work without a vault
-    let vault = sigil
-        .vault
-        .or_else(|| env::var_os("SIGIL_VAULT").map(PathBuf::from))
-        .ok_or(error::VaultError::NoVault)
-        .unwrap();
-
-    let res = match sigil.cmd {
-        Command::Touch { force } => cli::touch::touch_vault(&vault, key, force),
-        Command::List { disclose } => cli::list::list_vault(&vault, disclose),
-        Command::Password { cmd } => match cmd {
-            PasswordCommand::Add => cli::password::add_record(&vault, key),
-            PasswordCommand::Remove { record } => cli::password::remove_record(&vault, key, record),
-            PasswordCommand::GetPassword { record } => cli::password::get_password(&vault, record),
-        },
-        Command::Otp { cmd } => match cmd {
-            OtpCommand::Add => cli::otp::add_record(&vault, key),
-            OtpCommand::ImportUrl { url } => cli::otp::import_url(&vault, key, &url),
-            OtpCommand::GetToken { record, counter } => {
-                cli::otp::get_token(&vault, record, counter)
-            }
-            OtpCommand::Remove { record } => cli::otp::remove_record(&vault, key, record),
-        },
-    };
+    // Match them with a subcommand and run it
+    let res = match_args(sigil);
+    // Sort of pretty print any error
     if let Err(err) = res {
         eprintln!("Error: {}", err);
     }
