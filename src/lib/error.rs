@@ -36,4 +36,6 @@ pub enum OtpError {
     NoCounterProvided,
     #[fail(display = "Unknown OTP algorithm")]
     UnknownAlgorithm,
+    #[fail(display = "Unknown HMAC algorithm")]
+    UnknownHmacAlgorithm,
 }

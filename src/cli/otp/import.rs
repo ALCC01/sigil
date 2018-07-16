@@ -1,7 +1,7 @@
 use failure::Error;
 use gpgme::Context;
-use lib::types::OtpRecord;
-use lib::{otp, utils};
+use lib::types::{HmacAlgorithm, OtpRecord};
+use lib::utils;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use url::Url;
@@ -51,12 +51,11 @@ pub fn import_url(
     let secret = (&query["secret"]).to_string();
     let issuer = query.get("issuer").map(|n| n.to_string());
 
-    let algorithm = query
+    let algorithm: HmacAlgorithm = query
         .get("algorithm")
         .map(|n| n.to_string().to_ascii_uppercase())
-        .unwrap_or_else(|| "SHA1".to_string());
-    // Ensure it is supported
-    otp::string_to_algorithm(&algorithm)?;
+        .unwrap_or_else(|| "SHA1".to_string())
+        .parse()?;
 
     let digits: u32 = query
         .get("digits")

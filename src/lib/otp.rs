@@ -1,20 +1,9 @@
 use base32;
-use lib::error::OtpError;
+use lib::types::HmacAlgorithm;
 use ring::{digest, hmac};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type Algorithm = &'static digest::Algorithm;
-
-/// Converts a string to an `Algorithm`.
-/// Errors when the string is not `SHA(1|256|512)`
-pub fn string_to_algorithm(from: &str) -> Result<Algorithm, OtpError> {
-    match &from.to_ascii_uppercase()[..] {
-        "SHA1" => Ok(&digest::SHA1),
-        "SHA256" => Ok(&digest::SHA256),
-        "SHA512" => Ok(&digest::SHA512),
-        _ => Err(OtpError::UnknownAlgorithm),
-    }
-}
 
 /// Computes an N-digits OTP using the TOTP algorithm as laid out in
 /// [IETF RFC 6238](https://tools.ietf.org/html/rfc6238).
@@ -27,20 +16,27 @@ pub fn string_to_algorithm(from: &str) -> Result<Algorithm, OtpError> {
  *  1. C := floor((now - T0)/TI) as u64
  *  2. Return HOTP(K, C)
  */
-pub fn totp(T0: u64, TI: u64, K: &str, N: u32, algorithm: Algorithm) -> u32 {
+pub fn totp(T0: u64, TI: u64, K: &str, N: u32, algorithm: &HmacAlgorithm) -> u32 {
     tracepoint!();
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_secs();
 
-    totp_with_now(T0, TI, K, N, now, algorithm)
+    totp_with_now(T0, TI, K, N, now, &algorithm)
 }
 
 /// Computes an N-digits OTP using the TOTP algorithm as laid out in
 /// [IETF RFC 6238](https://tools.ietf.org/html/rfc6238).
 /// Helper method that allows testing
-pub fn totp_with_now(T0: u64, TI: u64, K: &str, N: u32, now: u64, algorithm: Algorithm) -> u32 {
+pub fn totp_with_now(
+    T0: u64,
+    TI: u64,
+    K: &str,
+    N: u32,
+    now: u64,
+    algorithm: &HmacAlgorithm,
+) -> u32 {
     tracepoint!();
     // (1)
     // Cast to f64 so that we can have the precision necessary to use floor as
@@ -49,7 +45,7 @@ pub fn totp_with_now(T0: u64, TI: u64, K: &str, N: u32, now: u64, algorithm: Alg
 
     // (2)
     tracepoint!();
-    hotp(K, C, N, algorithm)
+    hotp(K, C, N, &algorithm)
 }
 
 /// Computes an N-digits OTP using the HOTP algorithm as laid out in
@@ -69,7 +65,7 @@ pub fn totp_with_now(T0: u64, TI: u64, K: &str, N: u32, now: u64, algorithm: Alg
  *     store the rest as u32
  *  5. Return only `N` digits
  * */
-pub fn hotp(K: &str, C: u64, N: u32, algorithm: Algorithm) -> u32 {
+pub fn hotp(K: &str, C: u64, N: u32, algorithm: &HmacAlgorithm) -> u32 {
     tracepoint!();
     // (1)
     // Failing here is not recoverable -- the user did something wrong
@@ -77,7 +73,7 @@ pub fn hotp(K: &str, C: u64, N: u32, algorithm: Algorithm) -> u32 {
 
     // (2)
     tracepoint!();
-    let K = hmac::SigningKey::new(algorithm, K.as_ref());
+    let K = hmac::SigningKey::new(algorithm.to_algorithm(), K.as_ref());
     // Swap bytes because of endianess
     debug!("Counter ({}) is {:?}", C, C.swap_bytes().to_bytes());
     let H = hmac::sign(&K, &C.swap_bytes().to_bytes());

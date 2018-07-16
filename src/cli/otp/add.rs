@@ -1,7 +1,7 @@
 use failure::{Error, Fail};
 use gpgme::Context;
-use lib::types::OtpRecord;
-use lib::{error, otp, utils};
+use lib::types::{HmacAlgorithm, OtpRecord};
+use lib::{error, utils};
 use std::path::PathBuf;
 
 /// Adds an OTP record to the specified vault
@@ -57,12 +57,11 @@ pub fn add_record(vault_path: &PathBuf, key: &str, mut ctx: Context) -> Result<(
                 "What algorithm should be used to generate secrets? ([SHA1]|SHA256|SHA512) "
             )?;
             let algorithm = algorithm.trim();
-            let algorithm = if algorithm.is_empty() {
+            let algorithm: HmacAlgorithm = if algorithm.is_empty() {
                 "SHA1".to_owned()
             } else {
                 algorithm.to_owned()
-            };
-            otp::string_to_algorithm(&algorithm)?;
+            }.parse()?;
 
             // (1.a.iv)
             let digits = question!("How many digits should a token be made of? [6] ")?;
@@ -104,12 +103,11 @@ pub fn add_record(vault_path: &PathBuf, key: &str, mut ctx: Context) -> Result<(
                 "What algorithm should be used to generate secrets? ([SHA1]|SHA256|SHA512) "
             )?;
             let algorithm = algorithm.trim();
-            let algorithm = if algorithm.is_empty() {
+            let algorithm: HmacAlgorithm = if algorithm.is_empty() {
                 "SHA1".to_owned()
             } else {
                 algorithm.to_owned()
-            };
-            otp::string_to_algorithm(&algorithm)?;
+            }.parse()?;
 
             // (1.b.iv)
             let period =

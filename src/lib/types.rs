@@ -1,7 +1,10 @@
 use lib::error::{OtpError, VaultError};
 use lib::otp;
+use ring::digest;
+use std::clone::Clone;
 use std::collections::hash_map::Entry;
 use std::collections::HashMap;
+use std::str::FromStr;
 
 #[derive(Serialize, Deserialize)]
 pub struct Vault {
@@ -161,16 +164,47 @@ pub enum OtpRecord {
     Hotp {
         secret: String,
         issuer: Option<String>,
-        algorithm: String,
+        algorithm: HmacAlgorithm,
         digits: u32,
     },
     Totp {
         secret: String,
         issuer: Option<String>,
-        algorithm: String,
+        algorithm: HmacAlgorithm,
         period: u64,
         digits: u32,
     },
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum HmacAlgorithm {
+    SHA1,
+    SHA256,
+    SHA512,
+}
+
+impl FromStr for HmacAlgorithm {
+    // TODO More informative error
+    type Err = OtpError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match &s.to_ascii_uppercase()[..] {
+            "SHA1" => Ok(HmacAlgorithm::SHA1),
+            "SHA256" => Ok(HmacAlgorithm::SHA256),
+            "SHA512" => Ok(HmacAlgorithm::SHA512),
+            _ => Err(OtpError::UnknownHmacAlgorithm),
+        }
+    }
+}
+
+impl HmacAlgorithm {
+    pub fn to_algorithm(&self) -> otp::Algorithm {
+        match self {
+            HmacAlgorithm::SHA1 => &digest::SHA1,
+            HmacAlgorithm::SHA256 => &digest::SHA256,
+            HmacAlgorithm::SHA512 => &digest::SHA512,
+        }
+    }
 }
 
 impl OtpRecord {
@@ -185,14 +219,7 @@ impl OtpRecord {
                 digits,
                 ..
             } => {
-                let r = otp::totp(
-                    0,
-                    *period,
-                    secret,
-                    *digits,
-                    // We cannot recover from this
-                    otp::string_to_algorithm(algorithm).unwrap(),
-                );
+                let r = otp::totp(0, *period, secret, *digits, &algorithm);
                 // RFC 4226 Requires 6-digit values and suggests 7 and 8-digit
                 // values, so we 0-pad shorter numbers accordingly
                 Ok(match digits {
@@ -208,13 +235,7 @@ impl OtpRecord {
                 ..
             } => {
                 let counter = counter.ok_or(OtpError::NoCounterProvided)?;
-                let r = otp::hotp(
-                    secret,
-                    counter,
-                    *digits,
-                    // We cannot recover from this
-                    otp::string_to_algorithm(algorithm).unwrap(),
-                );
+                let r = otp::hotp(secret, counter, *digits, &algorithm);
 
                 // RFC 4226 Requires 6-digit values and suggests 7 and 8-digit
                 // values, so we 0-pad shorter numbers accordingly
@@ -245,7 +266,7 @@ impl OtpRecord {
                         depth,
                     );
                 }
-                tree_add_element(&mut buf, &format!("Algorithm: {}", algorithm), depth);
+                tree_add_element(&mut buf, &format!("Algorithm: {:?}", algorithm), depth);
                 tree_add_element(&mut buf, &format!("Period: {}s", period), depth);
                 tree_add_element(&mut buf, &format!("Digits: {}", digits), depth);
                 if disclose {
@@ -266,7 +287,7 @@ impl OtpRecord {
                         depth,
                     );
                 }
-                tree_add_element(&mut buf, &format!("Algorithm: {}", algorithm), depth);
+                tree_add_element(&mut buf, &format!("Algorithm: {:?}", algorithm), depth);
                 tree_add_element(&mut buf, &format!("Digits: {}", digits), depth);
                 if disclose {
                     tree_add_element(&mut buf, &format!("Secret: {}", secret), depth);
