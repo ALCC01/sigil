@@ -10,6 +10,7 @@ extern crate log;
 extern crate serde_derive;
 extern crate base32;
 extern crate gpgme;
+extern crate rand;
 extern crate ring;
 extern crate serde;
 extern crate toml;

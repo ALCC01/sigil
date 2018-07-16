@@ -96,6 +96,13 @@ pub enum PasswordCommand {
         /// Record name
         record: String,
     },
+    #[structopt(name = "generate")]
+    /// Generate a random password
+    Generate {
+        #[structopt()]
+        /// Password length
+        chars: usize,
+    },
 }
 
 pub fn match_args(sigil: Sigil) -> Result<(), Error> {
@@ -123,6 +130,7 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
             PasswordCommand::GetPassword { record } => {
                 cli::password::get_password(&vault?, ctx?, record)
             }
+            PasswordCommand::Generate { chars } => cli::password::generate_password(chars),
         },
         Command::Otp { cmd } => match cmd {
             OtpCommand::Add => cli::otp::add_record(&vault?, &key?, ctx?),
