@@ -1,5 +1,6 @@
 use cli;
 use failure::Error;
+use lib::types::{HmacAlgorithm, OtpRecord, Record};
 use lib::{error, utils};
 use std::env;
 use std::path::PathBuf;
@@ -52,8 +53,39 @@ pub enum Command {
 #[derive(Debug, StructOpt)]
 pub enum OtpCommand {
     #[structopt(name = "add")]
-    /// Add an OTP generator to a vault
-    Add,
+    /// Add an OTP secret to a vault. Interactive mode if no argument is provided
+    Add {
+        #[structopt(
+            requires = "secret",
+            long = "totp",
+            takes_value = false,
+            group = "algo",
+            conflicts_with = "hotp"
+        )]
+        /// Use TOTP as the generation algorithm
+        totp: bool,
+        #[structopt(requires = "secret", long = "hotp", takes_value = false, group = "algo")]
+        /// Use HOTP as the generation algorithm
+        hotp: bool,
+        /// A label for this secret
+        #[structopt(requires = "secret")]
+        record: Option<String>,
+        #[structopt(requires = "algo")]
+        /// The secret
+        secret: Option<String>,
+        #[structopt(requires = "secret", long = "issuer")]
+        /// The issuer of this secret
+        issuer: Option<String>,
+        #[structopt(requires = "secret", long = "hmac", default_value = "SHA1")]
+        /// The HMAC algorithm to use to generate tokens
+        algorithm: HmacAlgorithm,
+        #[structopt(requires = "secret", long = "digits", default_value = "6")]
+        /// The token length
+        digits: u32,
+        #[structopt(requires = "secret", long = "period", default_value = "30")]
+        /// Token validity in seconds
+        period: u64,
+    },
     #[structopt(name = "import")]
     /// Import an OTP generator to a vault using an `otpauth://` URI
     ImportUrl {
@@ -81,8 +113,24 @@ pub enum OtpCommand {
 #[derive(Debug, StructOpt)]
 pub enum PasswordCommand {
     #[structopt(name = "add")]
-    /// Add a password to a vault
-    Add,
+    /// Add a password to a vault. Interactive mode if no argument is provided
+    Add {
+        #[structopt(requires = "password")]
+        /// A label for this password
+        record: Option<String>,
+        #[structopt()]
+        /// The password
+        password: Option<String>,
+        #[structopt(short = "u", long = "username", requires = "password")]
+        /// The username associated with this password
+        username: Option<String>,
+        #[structopt(long = "email", requires = "password")]
+        /// The email associated with this password
+        email: Option<String>,
+        #[structopt(long = "home", requires = "password")]
+        /// The homepage for this service
+        home: Option<String>,
+    },
     #[structopt(name = "rm")]
     /// Remove a record from a vault
     Remove {
@@ -123,7 +171,26 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
         Command::Touch { force } => cli::touch::touch_vault(&vault?, &key?, force),
         Command::List { disclose } => cli::list::list_vault(&vault?, disclose),
         Command::Password { cmd } => match cmd {
-            PasswordCommand::Add => cli::password::add_record(&vault?, &key?, ctx?),
+            PasswordCommand::Add {
+                record,
+                password,
+                username,
+                email,
+                home,
+            } => {
+                if record.is_some() && password.is_some() {
+                    // Safe unwraps because we checked them before and they are required args
+                    cli::password::add_record(
+                        &vault?,
+                        &key?,
+                        ctx?,
+                        Record::new(password.unwrap(), username, email, home),
+                        record.unwrap(),
+                    )
+                } else {
+                    cli::password::add_record_interactive(&vault?, &key?, ctx?)
+                }
+            }
             PasswordCommand::Remove { record } => {
                 cli::password::remove_record(&vault?, &key?, ctx?, record)
             }
@@ -133,7 +200,41 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
             PasswordCommand::Generate { chars } => cli::password::generate_password(chars),
         },
         Command::Otp { cmd } => match cmd {
-            OtpCommand::Add => cli::otp::add_record(&vault?, &key?, ctx?),
+            OtpCommand::Add {
+                totp,
+                hotp,
+                issuer,
+                record,
+                secret,
+                algorithm,
+                digits,
+                period,
+            } => {
+                if secret.is_some() && record.is_some() {
+                    // Safe unwraps because we checked them before and they are required args
+                    if totp {
+                        cli::otp::add_record(
+                            &vault?,
+                            &key?,
+                            ctx?,
+                            OtpRecord::new_totp(secret.unwrap(), issuer, algorithm, digits, period),
+                            record.unwrap(),
+                        )
+                    } else if hotp {
+                        cli::otp::add_record(
+                            &vault?,
+                            &key?,
+                            ctx?,
+                            OtpRecord::new_hotp(secret.unwrap(), issuer, algorithm, digits),
+                            record.unwrap(),
+                        )
+                    } else {
+                        unreachable!()
+                    }
+                } else {
+                    cli::otp::add_record_interactive(&vault?, &key?, ctx?)
+                }
+            }
             OtpCommand::ImportUrl { url } => cli::otp::import_url(&vault?, &key?, ctx?, &url),
             OtpCommand::GetToken { record, counter } => {
                 cli::otp::get_token(&vault?, ctx?, record, counter)

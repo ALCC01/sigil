@@ -1,6 +1,5 @@
 use failure::Error;
 use gpgme::Context;
-use lib::error;
 use lib::utils;
 use std::path::PathBuf;
 
@@ -8,7 +7,7 @@ use std::path::PathBuf;
 /**
  * Blueprint
  *  1. `read_vault`, `vault.get_record`, bail on error
- *  2. Return the `password` field or bail if it is not defined
+ *  2. Return the `password` field
  */
 pub fn get_password(
     vault_path: &PathBuf,
@@ -22,11 +21,7 @@ pub fn get_password(
     let record = vault.get_record(record_id)?;
 
     // (2)
-    match record.password {
-        Some(ref password) => {
-            println!("{}", password);
-            Ok(())
-        }
-        None => Err(error::NoSuchField("password".to_string()))?,
-    }
+    println!("{}", record.password);
+
+    Ok(())
 }

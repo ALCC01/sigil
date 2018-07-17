@@ -117,11 +117,25 @@ fn tree_add_element(buf: &mut String, item: &str, depth: usize) {
 pub struct Record {
     pub username: Option<String>,
     pub email: Option<String>,
-    pub password: Option<String>,
+    pub password: String,
     pub home: Option<String>,
 }
 
 impl Record {
+    pub fn new(
+        password: String,
+        username: Option<String>,
+        email: Option<String>,
+        home: Option<String>,
+    ) -> Record {
+        Record {
+            password,
+            username,
+            email,
+            home,
+        }
+    }
+
     pub fn display(&self, disclose: bool, depth: usize) -> String {
         let mut buf = String::new();
 
@@ -146,10 +160,10 @@ impl Record {
                 depth,
             );
         }
-        if self.password.is_some() && disclose {
+        if disclose {
             tree_add_element(
                 &mut buf,
-                &format!("Password: {}", self.password.clone().unwrap()),
+                &format!("Password: {}", self.password.clone()),
                 depth,
             );
         }
@@ -208,6 +222,35 @@ impl HmacAlgorithm {
 }
 
 impl OtpRecord {
+    pub fn new_totp(
+        secret: String,
+        issuer: Option<String>,
+        algorithm: HmacAlgorithm,
+        digits: u32,
+        period: u64,
+    ) -> OtpRecord {
+        OtpRecord::Totp {
+            secret,
+            issuer,
+            algorithm,
+            digits,
+            period,
+        }
+    }
+    pub fn new_hotp(
+        secret: String,
+        issuer: Option<String>,
+        algorithm: HmacAlgorithm,
+        digits: u32,
+    ) -> OtpRecord {
+        OtpRecord::Hotp {
+            secret,
+            issuer,
+            algorithm,
+            digits,
+        }
+    }
+
     /// Generate a token for this record. `counter` is required for Otp::Hotp
     /// and ignored by Otp::Totp
     pub fn generate_token(&self, counter: Option<u64>) -> Result<String, OtpError> {

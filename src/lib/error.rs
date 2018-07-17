@@ -23,10 +23,6 @@ pub struct NoKeyError();
 pub struct MandatoryArgumentAbsentError();
 
 #[derive(Debug, Fail)]
-#[fail(display = "Failed to find field {} on record", 0)]
-pub struct NoSuchField(pub String);
-
-#[derive(Debug, Fail)]
 #[fail(display = "Failed to create a GPG cryptographic context")]
 pub struct GgpContextCreationFailed();
 

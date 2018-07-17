@@ -4,7 +4,21 @@ use lib::types::{HmacAlgorithm, OtpRecord};
 use lib::{error, utils};
 use std::path::PathBuf;
 
-/// Adds an OTP record to the specified vault
+pub fn add_record(
+    vault_path: &PathBuf,
+    key: &str,
+    mut ctx: Context,
+    record: OtpRecord,
+    record_id: String,
+) -> Result<(), Error> {
+    let mut vault = utils::read_vault(&vault_path, &mut ctx).unwrap();
+    vault.add_otp_record(record, record_id)?;
+    utils::write_vault(&vault_path, &vault, &mut ctx, &key).unwrap();
+
+    Ok(())
+}
+
+/// Adds an OTP record to the specified vault using an interactive dialog
 /**
  * Blueprint
  *  1. Get the OTP record kind from the user (allow Hotp and Totp)
@@ -26,7 +40,11 @@ use std::path::PathBuf;
  *  5. `read_vault`, `vault::add_otp_record`, `write_vault`, bail on error
  */
 // TODO Compact question boilerplate
-pub fn add_record(vault_path: &PathBuf, key: &str, mut ctx: Context) -> Result<(), Error> {
+pub fn add_record_interactive(
+    vault_path: &PathBuf,
+    key: &str,
+    mut ctx: Context,
+) -> Result<(), Error> {
     tracepoint!();
 
     // (1)

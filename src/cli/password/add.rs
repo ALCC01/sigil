@@ -4,7 +4,31 @@ use lib::types::Record;
 use lib::{error, utils};
 use std::path::PathBuf;
 
-/// Adds a password record to the specified vault
+/// Adds the provided password record to the specified vault
+/**
+ * Blueprint
+ *  1. `read_vault`, `vault::add_record`, `write_vault`, bail on error
+ */
+pub fn add_record(
+    vault_path: &PathBuf,
+    key: &str,
+    mut ctx: Context,
+    record: Record,
+    record_id: String,
+) -> Result<(), Error> {
+    tracepoint!();
+
+    // (1)
+    // TODO These unwraps are due to the fact that the errors cannot be made
+    // into failure::Error's. Find a workaround
+    let mut vault = utils::read_vault(&vault_path, &mut ctx).unwrap();
+    vault.add_record(record, record_id)?;
+    utils::write_vault(&vault_path, &vault, &mut ctx, &key).unwrap();
+
+    Ok(())
+}
+
+/// Adds a password record to the specified vault using an interactive dialog
 /**
  * Blueprint
  *  1. Get the information necessary to construct a record from the user or from
@@ -17,10 +41,10 @@ use std::path::PathBuf;
  *      e) Account password: mandatory
  *  2. Construct a `Record`
  *  3. Get a record ID from the user, bail if not provided
- *  4. `read_vault`, `Vault::add_record`, `write_vault`, bail on error
+ *  4. `add_record`
  */
 // TODO Compact question boilerplate
-pub fn add_record(vault_path: &PathBuf, key: &str, mut ctx: Context) -> Result<(), Error> {
+pub fn add_record_interactive(vault_path: &PathBuf, key: &str, ctx: Context) -> Result<(), Error> {
     tracepoint!();
 
     // (1.a)
@@ -40,7 +64,7 @@ pub fn add_record(vault_path: &PathBuf, key: &str, mut ctx: Context) -> Result<(
     };
 
     // (1.c)
-    let username = question!("What is the username associated with this password? [None] ")?;
+    let username = question!("What is the username associated with this password? ")?;
     let username = username.trim();
     let username = if username.is_empty() {
         None
@@ -69,7 +93,7 @@ pub fn add_record(vault_path: &PathBuf, key: &str, mut ctx: Context) -> Result<(
         username,
         home,
         email,
-        password: Some(password.to_owned()),
+        password: password.to_owned(),
     };
 
     // (3)
@@ -81,14 +105,10 @@ pub fn add_record(vault_path: &PathBuf, key: &str, mut ctx: Context) -> Result<(
     let mut record_id = record_id.trim().to_owned();
     if record_id.is_empty() {
         record_id = record_id_default;
-    }
+    };
 
     // (4)
-    // TODO These unwraps are due to the fact that the errors cannot be made
-    // into failure::Error's. Find a workaround
-    let mut vault = utils::read_vault(&vault_path, &mut ctx).unwrap();
-    vault.add_record(record, record_id)?;
-    utils::write_vault(&vault_path, &vault, &mut ctx, &key).unwrap();
+    add_record(&vault_path, &key, ctx, record, record_id)?;
 
     Ok(())
 }
