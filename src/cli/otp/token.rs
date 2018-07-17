@@ -12,14 +12,14 @@ use std::path::PathBuf;
 pub fn get_token(
     vault_path: &PathBuf,
     mut ctx: Context,
-    record_id: String,
+    record_id: &str,
     counter: Option<u64>,
 ) -> Result<(), Error> {
     tracepoint!();
 
     // (1)
     let vault = utils::read_vault(&vault_path, &mut ctx).unwrap();
-    let record = vault.get_otp_record(record_id)?;
+    let record = vault.get_otp_record(&record_id)?;
 
     // (2)
     tracepoint!();

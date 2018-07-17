@@ -41,43 +41,41 @@ impl Vault {
 
     pub fn remove_record(&mut self, record_id: String) -> Result<(), VaultError> {
         tracepoint!();
-        let r = record_id.clone(); // We need ownership if we need to build an error
         match self.passwords.entry(record_id) {
             Entry::Occupied(entry) => {
                 entry.remove();
                 Ok(())
             }
-            _ => Err(VaultError::UnknownRecord(r)),
+            _ => Err(VaultError::UnknownRecord),
         }
     }
 
     pub fn remove_otp_record(&mut self, record_id: String) -> Result<(), VaultError> {
         tracepoint!();
-        let r = record_id.clone(); // We need ownership if we need to build an error
         match self.otps.entry(record_id) {
             Entry::Occupied(entry) => {
                 entry.remove();
                 Ok(())
             }
-            _ => Err(VaultError::UnknownRecord(r)),
+            _ => Err(VaultError::UnknownRecord),
         }
     }
 
-    pub fn get_record(&self, record_id: String) -> Result<&Record, VaultError> {
+    pub fn get_record(&self, record_id: &str) -> Result<&Record, VaultError> {
         tracepoint!();
-        if let Some(record) = self.passwords.get(&record_id) {
+        if let Some(record) = self.passwords.get(record_id) {
             Ok(record)
         } else {
-            Err(VaultError::UnknownRecord(record_id))
+            Err(VaultError::UnknownRecord)
         }
     }
 
-    pub fn get_otp_record(&self, record_id: String) -> Result<&OtpRecord, VaultError> {
+    pub fn get_otp_record(&self, record_id: &str) -> Result<&OtpRecord, VaultError> {
         tracepoint!();
-        if let Some(record) = self.otps.get(&record_id) {
+        if let Some(record) = self.otps.get(record_id) {
             Ok(record)
         } else {
-            Err(VaultError::UnknownRecord(record_id))
+            Err(VaultError::UnknownRecord)
         }
     }
 

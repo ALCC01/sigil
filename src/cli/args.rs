@@ -37,14 +37,14 @@ pub enum Command {
     #[structopt(name = "touch")]
     /// Initialize an empty vault file
     Touch {
-        #[structopt(short = "f", long = "force", takes_value = false)]
+        #[structopt(short = "f", long = "force", raw(takes_value = "false"))]
         /// Overwrite an existing file
         force: bool,
     },
     #[structopt(name = "ls")]
     /// List all records in a vault
     List {
-        #[structopt(long = "disclose", takes_value = false)]
+        #[structopt(long = "disclose", raw(takes_value = "false"))]
         /// Disclose secrets
         disclose: bool,
     },
@@ -58,13 +58,15 @@ pub enum OtpCommand {
         #[structopt(
             requires = "secret",
             long = "totp",
-            takes_value = false,
+            raw(takes_value = "false"),
             group = "algo",
             conflicts_with = "hotp"
         )]
         /// Use TOTP as the generation algorithm
         totp: bool,
-        #[structopt(requires = "secret", long = "hotp", takes_value = false, group = "algo")]
+        #[structopt(
+            requires = "secret", long = "hotp", raw(takes_value = "false"), group = "algo"
+        )]
         /// Use HOTP as the generation algorithm
         hotp: bool,
         /// A label for this secret
@@ -195,7 +197,7 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
                 cli::password::remove_record(&vault?, &key?, ctx?, record)
             }
             PasswordCommand::GetPassword { record } => {
-                cli::password::get_password(&vault?, ctx?, record)
+                cli::password::get_password(&vault?, ctx?, &record)
             }
             PasswordCommand::Generate { chars } => cli::password::generate_password(chars),
         },
@@ -237,7 +239,7 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
             }
             OtpCommand::ImportUrl { url } => cli::otp::import_url(&vault?, &key?, ctx?, &url),
             OtpCommand::GetToken { record, counter } => {
-                cli::otp::get_token(&vault?, ctx?, record, counter)
+                cli::otp::get_token(&vault?, ctx?, &record, counter)
             }
             OtpCommand::Remove { record } => cli::otp::remove_record(&vault?, &key?, ctx?, record),
         },

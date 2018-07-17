@@ -74,9 +74,10 @@ pub fn hotp(K: &str, C: u64, N: u32, algorithm: &HmacAlgorithm) -> u32 {
     // (2)
     tracepoint!();
     let K = hmac::SigningKey::new(algorithm.to_algorithm(), K.as_ref());
-    // Swap bytes because of endianess
-    debug!("Counter ({}) is {:?}", C, C.swap_bytes().to_bytes());
-    let H = hmac::sign(&K, &C.swap_bytes().to_bytes());
+    // TODO Use int_to_from_bytes (see Rust PR #51835) when stabilized
+    // in Rust 1.29. When using it, .swap_bytes() because of endianess
+    println!("Counter ({}) is {:?}", C, u64_into_bytes(C));
+    let H = hmac::sign(&K, &u64_into_bytes(C));
     debug!(
         "Signed digest is {}",
         H.as_ref()
@@ -111,7 +112,7 @@ pub fn hotp(K: &str, C: u64, N: u32, algorithm: &HmacAlgorithm) -> u32 {
 #[cfg(test)]
 mod tests {
     use lib::otp;
-    use ring::digest;
+    use lib::types::HmacAlgorithm;
 
     // Test values provided in RFC 4226
     // Base32 for "12345678901234567890";
@@ -124,7 +125,7 @@ mod tests {
     fn hotp_rfc_values() {
         for value in 0..RFC_HOTP_VALUES.len() {
             assert_eq!(
-                otp::hotp(&RFC_HOTP_SECRET, value as u64, 6, &digest::SHA1),
+                otp::hotp(&RFC_HOTP_SECRET, value as u64, 6, &HmacAlgorithm::SHA1),
                 RFC_HOTP_VALUES[value as usize]
             );
         }
@@ -155,7 +156,7 @@ mod tests {
                     &RFC_TOTP_SECRET_SHA1,
                     8,
                     RFC_TOTP_TIMES[value],
-                    &digest::SHA1
+                    &HmacAlgorithm::SHA1
                 ),
                 RFC_TOTP_VALUES_SHA1[value as usize]
             );
@@ -178,7 +179,7 @@ mod tests {
                     &RFC_TOTP_SECRET_SHA256,
                     8,
                     RFC_TOTP_TIMES[value],
-                    &digest::SHA256
+                    &HmacAlgorithm::SHA256
                 ),
                 RFC_TOTP_VALUES_SHA256[value as usize]
             );
@@ -201,10 +202,26 @@ mod tests {
                     &RFC_TOTP_SECRET_SHA512,
                     8,
                     RFC_TOTP_TIMES[value],
-                    &digest::SHA512
+                    &HmacAlgorithm::SHA512
                 ),
                 RFC_TOTP_VALUES_SHA512[value as usize]
             );
         }
     }
+}
+
+/// Converts u64 to a u8 array
+/// Fallback method waiting for stabilization of int_to_from_bytes
+/// (see Rust PR #51835) in Rust 1.29
+fn u64_into_bytes(x: u64) -> [u8; 8] {
+    [
+        ((x >> 56) & 0xff) as u8,
+        ((x >> 48) & 0xff) as u8,
+        ((x >> 40) & 0xff) as u8,
+        ((x >> 32) & 0xff) as u8,
+        ((x >> 24) & 0xff) as u8,
+        ((x >> 16) & 0xff) as u8,
+        ((x >> 8) & 0xff) as u8,
+        (x & 0xff) as u8,
+    ]
 }

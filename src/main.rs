@@ -1,4 +1,3 @@
-#![feature(attr_literals)]
 extern crate env_logger; // TODO env_logger may not be a good fit
 #[macro_use]
 extern crate structopt;
