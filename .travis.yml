@@ -1,0 +1,23 @@
+language: rust
+rust:
+  - stable
+  - beta
+  - nightly
+matrix:
+  allow_failures:
+    - rust: nightly
+  fast_finish: true
+cache: cargo
+addons:
+  apt:
+    sources:
+    - sourceline: 'ppa:duggan/bats'
+    packages:
+    - bats
+    - libgpgme11-dev
+    - oathtool
+script:
+  - cargo build --verbose --all
+  - cargo test --verbose --all
+  - ./tests/setup.sh
+  - ./tests/cli.sh

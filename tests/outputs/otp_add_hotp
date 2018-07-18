@@ -1,0 +1,8 @@
+[passwords]
+
+[otps."Bob:service"]
+type = "Hotp"
+secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+issuer = "service"
+algorithm = "SHA1"
+digits = 6

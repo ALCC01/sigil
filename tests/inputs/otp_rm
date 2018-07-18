@@ -1,0 +1,9 @@
+[passwords]
+
+[otps."Bob:service"]
+type = "Totp"
+secret = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
+issuer = "service"
+algorithm = "SHA1"
+period = 30
+digits = 6
