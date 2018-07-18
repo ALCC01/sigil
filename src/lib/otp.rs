@@ -1,6 +1,7 @@
 use base32;
 use lib::types::HmacAlgorithm;
 use ring::{digest, hmac};
+use std::mem::transmute;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub type Algorithm = &'static digest::Algorithm;
@@ -76,7 +77,7 @@ pub fn hotp(K: &str, C: u64, N: u32, algorithm: &HmacAlgorithm) -> u32 {
     let K = hmac::SigningKey::new(algorithm.to_algorithm(), K.as_ref());
     // TODO Use int_to_from_bytes (see Rust PR #51835) when stabilized
     // in Rust 1.29. When using it, .swap_bytes() because of endianess
-    println!("Counter ({}) is {:?}", C, u64_into_bytes(C));
+    debug!("Counter ({}) is {:?}", C, u64_into_bytes(C));
     let H = hmac::sign(&K, &u64_into_bytes(C));
     debug!(
         "Signed digest is {}",
@@ -214,14 +215,5 @@ mod tests {
 /// Fallback method waiting for stabilization of int_to_from_bytes
 /// (see Rust PR #51835) in Rust 1.29
 fn u64_into_bytes(x: u64) -> [u8; 8] {
-    [
-        ((x >> 56) & 0xff) as u8,
-        ((x >> 48) & 0xff) as u8,
-        ((x >> 40) & 0xff) as u8,
-        ((x >> 32) & 0xff) as u8,
-        ((x >> 24) & 0xff) as u8,
-        ((x >> 16) & 0xff) as u8,
-        ((x >> 8) & 0xff) as u8,
-        (x & 0xff) as u8,
-    ]
+    unsafe { transmute(x.to_be()) }
 }

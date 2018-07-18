@@ -4,6 +4,7 @@ use lib::types::{HmacAlgorithm, OtpRecord, Record};
 use lib::{error, utils};
 use std::env;
 use std::path::PathBuf;
+use structopt::clap::ArgGroup;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "sigil", about = "GPG-backed password manager")]
@@ -50,7 +51,12 @@ pub enum Command {
     },
 }
 
+fn algo_arg_group() -> ArgGroup<'static> {
+    ArgGroup::with_name("algo").required(true)
+}
+
 #[derive(Debug, StructOpt)]
+#[structopt(raw(group = "algo_arg_group()"))]
 pub enum OtpCommand {
     #[structopt(name = "add")]
     /// Add an OTP secret to a vault. Interactive mode if no argument is provided
@@ -60,7 +66,7 @@ pub enum OtpCommand {
             long = "totp",
             raw(takes_value = "false"),
             group = "algo",
-            conflicts_with = "hotp"
+            //conflicts_with = "hotp"
         )]
         /// Use TOTP as the generation algorithm
         totp: bool,
@@ -72,8 +78,8 @@ pub enum OtpCommand {
         /// A label for this secret
         #[structopt(requires = "secret")]
         record: Option<String>,
-        #[structopt(requires = "algo")]
-        /// The secret
+        #[structopt(raw(requires_all = "&[\"algo\", \"record\"]"))]
+        /// The secret  
         secret: Option<String>,
         #[structopt(requires = "secret", long = "issuer")]
         /// The issuer of this secret
