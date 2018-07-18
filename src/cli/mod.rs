@@ -1,12 +1,34 @@
-/// A macro for asking a question to the user
+/// A macro to ask, validate and possibly re-ask the user a question
 macro_rules! question {
-    ($($arg:tt)*) => {
+    ($validator:expr, $($arg:tt)*) => {
         {
             use std::io;
             use std::io::Write;
-            let mut temp_buf = String::new();
-            print!($($arg)*);
-            io::stdout().flush().and(io::stdin().read_line(&mut temp_buf).and(Ok(temp_buf)))
+            // Until we get an error we can't recover OR the user gives us an
+            // answer we can accept
+            loop {
+                // Answer will be written to this string
+                let mut temp_buf = String::new();
+                // Print the question
+                print!($($arg)*);
+                // Read a line
+                let res = io::stdout().flush().and(io::stdin().read_line(&mut temp_buf).and(Ok(temp_buf)));
+                // If we're successfull
+                if res.is_ok() {
+                    let res : String = res.unwrap();
+                    // Run the validator
+                    let validated : Result<_, _> = $validator(res.trim().to_string());
+                    if validated.is_ok() {
+                        break validated;
+                    } else {
+                        // Start over
+                        println!("{}", validated.err().unwrap());
+                    }
+                } else {
+                    // Can't recover from this
+                    break Err(format_err!("IO error"));
+                }
+            }
         }
     };
 }

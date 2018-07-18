@@ -5,7 +5,7 @@ setup() {
     SIGIL=$BATS_TEST_DIRNAME/../target/debug/sigil
     mkdir -p $TEMPDIR
     export SIGIL_VAULT="$TEMPDIR/test.vault"
-    export GPGKEY="Sigil CI"
+    export SIGIL_GPGKEY="Sigil CI"
 }
 
 teardown() {

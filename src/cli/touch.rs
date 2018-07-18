@@ -1,5 +1,4 @@
 use failure::Error;
-use lib::error;
 use lib::types::Vault;
 use lib::utils;
 use std::collections::HashMap;
@@ -22,11 +21,14 @@ pub fn touch_vault(vault_path: &PathBuf, key: &str, force: bool) -> Result<(), E
     // (1)
     // Check if file exists
     if vault_path.exists() && !force {
-        Err(error::VaultError::Overwriting)?
+        bail!(
+            "Vault path already exists, use --force to overwrite ({})",
+            vault_path.display()
+        )
     }
     // Check if file is a directory
     if vault_path.is_dir() {
-        Err(error::VaultError::VaultIsADirectory)?
+        bail!("Vault path is a directory ({})", vault_path.display())
     }
 
     // (2)

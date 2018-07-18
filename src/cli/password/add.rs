@@ -1,7 +1,7 @@
-use failure::{Error, Fail};
+use failure::Error;
 use gpgme::Context;
 use lib::types::Record;
-use lib::{error, utils};
+use lib::utils;
 use std::path::PathBuf;
 
 /// Adds the provided password record to the specified vault
@@ -32,8 +32,7 @@ pub fn add_record(
 /**
  * Blueprint
  *  1. Get the information necessary to construct a record from the user or from
- *     the args. Bail if mandatory info is not provided. Trim all strings. Trim
- *     only newlines for `password`.
+ *     the args. Trim all strings.
  *      a) Service name: mandatory
  *      b) Service URL
  *      c) Account username
@@ -43,50 +42,61 @@ pub fn add_record(
  *  3. Get a record ID from the user, bail if not provided
  *  4. `add_record`
  */
-// TODO Compact question boilerplate
 pub fn add_record_interactive(vault_path: &PathBuf, key: &str, ctx: Context) -> Result<(), Error> {
     tracepoint!();
+    println!("We are going to add a password to the vault.");
+    println!("Once a password has been added, it will be safely stored and you'll be able to access it at any time.");
+    println!();
 
     // (1.a)
-    let service = question!("What service is this password for? ")?;
-    let service = service.trim();
-    if service.is_empty() {
-        Err(error::MandatoryArgumentAbsentError().context("A service name must be provided"))?
-    }
+    let service = question!(
+        |s: String| if s.is_empty() {
+            Err(format_err!("Please provide a service name"))
+        } else {
+            Ok(s)
+        },
+        "What service is this password for? "
+    )?;
 
     // (1.b)
-    let home = question!("What's the home URL of this service? [None] ")?;
-    let home = home.trim();
-    let home = if home.is_empty() {
-        None
-    } else {
-        Some(home.to_owned())
-    };
+    let home = question!(
+        |s: String| if s.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(s.to_owned()))
+        },
+        "What's the home URL of this service? [None] "
+    )?;
 
     // (1.c)
-    let username = question!("What is the username associated with this password? ")?;
-    let username = username.trim();
-    let username = if username.is_empty() {
-        None
-    } else {
-        Some(username.to_owned())
-    };
+    let username = question!(
+        |s: String| if s.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(s.to_owned()))
+        },
+        "What username do you use to log in with this password? [None] "
+    )?;
 
     // (1.d)
-    let email = question!("What is the email associated with this password? [None] ")?;
-    let email = email.trim();
-    let email = if email.is_empty() {
-        None
-    } else {
-        Some(email.to_owned())
-    };
+    let email = question!(
+        |s: String| if s.is_empty() {
+            Ok(None)
+        } else {
+            Ok(Some(s.to_owned()))
+        },
+        "What's the email associated with this password? [None] "
+    )?;
 
     // (1.e)
-    let password = question!("What is the password? ")?;
-    let password = password.trim_matches(|n| n == '\n' || n == '\r');
-    if password.is_empty() {
-        Err(error::MandatoryArgumentAbsentError().context("A password must be provided"))?
-    }
+    let password = question!(
+        |s: String| if s.is_empty() {
+            Err(format_err!("Please provide a non-empty password"))
+        } else {
+            Ok(s)
+        },
+        "What's the password? "
+    )?;
 
     // (2)
     let record = Record {
@@ -99,17 +109,20 @@ pub fn add_record_interactive(vault_path: &PathBuf, key: &str, ctx: Context) -> 
     // (3)
     let record_id_default = record_id(&record, &service.to_owned());
     let record_id = question!(
-        "What should this record be called? [{}] ",
-        record_id_default
+        |s: String| if s.is_empty() {
+            Ok(record_id_default.clone())
+        } else {
+            Ok(s)
+        },
+        "How should this password be called? [{}] ",
+        record_id_default.clone()
     )?;
-    let mut record_id = record_id.trim().to_owned();
-    if record_id.is_empty() {
-        record_id = record_id_default;
-    };
 
     // (4)
     add_record(&vault_path, &key, ctx, record, record_id)?;
 
+    println!();
+    println!("This password has been successfully added to the vault!");
     Ok(())
 }
 

@@ -1,7 +1,7 @@
 use cli;
 use failure::Error;
 use lib::types::{HmacAlgorithm, OtpRecord, Record};
-use lib::{error, utils};
+use lib::utils;
 use std::env;
 use std::path::PathBuf;
 use structopt::clap::ArgGroup;
@@ -62,16 +62,12 @@ pub enum OtpCommand {
     /// Add an OTP secret to a vault. Interactive mode if no argument is provided
     Add {
         #[structopt(
-            requires = "secret",
-            long = "totp",
-            raw(takes_value = "false"),
-            group = "algo",
-            //conflicts_with = "hotp"
+            /*requires = "secret",*/ long = "totp", raw(takes_value = "false"), group = "algo"
         )]
         /// Use TOTP as the generation algorithm
         totp: bool,
         #[structopt(
-            requires = "secret", long = "hotp", raw(takes_value = "false"), group = "algo"
+            /*requires = "secret",*/ long = "hotp", raw(takes_value = "false"), group = "algo"
         )]
         /// Use HOTP as the generation algorithm
         hotp: bool,
@@ -84,15 +80,15 @@ pub enum OtpCommand {
         #[structopt(requires = "secret", long = "issuer")]
         /// The issuer of this secret
         issuer: Option<String>,
-        #[structopt(requires = "secret", long = "hmac", default_value = "SHA1")]
+        #[structopt(requires = "secret", long = "hmac")]
         /// The HMAC algorithm to use to generate tokens
-        algorithm: HmacAlgorithm,
-        #[structopt(requires = "secret", long = "digits", default_value = "6")]
+        algorithm: Option<HmacAlgorithm>,
+        #[structopt(requires = "secret", long = "digits")]
         /// The token length
-        digits: u32,
-        #[structopt(requires = "secret", long = "period", default_value = "30")]
+        digits: Option<u32>,
+        #[structopt(requires = "secret", long = "period")]
         /// Token validity in seconds
-        period: u64,
+        period: Option<u64>,
     },
     #[structopt(name = "import")]
     /// Import an OTP generator to a vault using an `otpauth://` URI
@@ -166,14 +162,19 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
     // Not all commands will need these
     let key = sigil
         .key
-        .or_else(|| env::var_os("GPGKEY").map(|n| n.to_string_lossy().to_string()))
-        .ok_or(error::NoKeyError());
+        .or_else(|| env::var_os("SIGIL_GPGKEY").map(|n| n.to_string_lossy().to_string()))
+        .ok_or_else(|| {
+            format_err!("No GPG key was passed either as an argument (--key) or as an environment variable (SIGIL_GPGKEY)")
+        });
     let vault = sigil
         .vault
         .or_else(|| env::var_os("SIGIL_VAULT").map(PathBuf::from))
-        .ok_or(error::VaultError::NoVault);
+        .ok_or_else(|| {
+            format_err!("No vault path was passed either as an argument (--vault) or as an environment variable (SIGIL_VAULT)")
+        });
     // Not all commands will need a context
-    let ctx = utils::create_context().map_err(|_| error::GgpContextCreationFailed());
+    let ctx = utils::create_context()
+        .map_err(|_| format_err!("Failed to create a GPG cryptographic context"));
 
     match sigil.cmd {
         Command::Touch { force } => cli::touch::touch_vault(&vault?, &key?, force),
@@ -225,7 +226,13 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
                             &vault?,
                             &key?,
                             ctx?,
-                            OtpRecord::new_totp(secret.unwrap(), issuer, algorithm, digits, period),
+                            OtpRecord::new_totp(
+                                secret.unwrap(),
+                                issuer,
+                                algorithm.unwrap_or(HmacAlgorithm::SHA1),
+                                digits.unwrap_or(6),
+                                period.unwrap_or(30),
+                            ),
                             record.unwrap(),
                         )
                     } else if hotp {
@@ -233,7 +240,12 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
                             &vault?,
                             &key?,
                             ctx?,
-                            OtpRecord::new_hotp(secret.unwrap(), issuer, algorithm, digits),
+                            OtpRecord::new_hotp(
+                                secret.unwrap(),
+                                issuer,
+                                algorithm.unwrap_or(HmacAlgorithm::SHA1),
+                                digits.unwrap_or(6),
+                            ),
                             record.unwrap(),
                         )
                     } else {
