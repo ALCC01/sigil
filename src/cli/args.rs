@@ -3,8 +3,10 @@ use failure::Error;
 use lib::types::{HmacAlgorithm, OtpRecord, Record};
 use lib::utils;
 use std::env;
+use std::io;
 use std::path::PathBuf;
-use structopt::clap::ArgGroup;
+use structopt::clap::{ArgGroup, Shell};
+use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 #[structopt(name = "sigil", about = "GPG-backed password manager")]
@@ -48,6 +50,13 @@ pub enum Command {
         #[structopt(long = "disclose", raw(takes_value = "false"))]
         /// Disclose secrets
         disclose: bool,
+    },
+    #[structopt(name = "completion")]
+    /// Generate a completion script for Sigil
+    Completion {
+        #[structopt(raw(possible_values = "&Shell::variants()"))]
+        /// The shell that will be using the script
+        shell: Shell,
     },
 }
 
@@ -175,6 +184,11 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
     match sigil.cmd {
         Command::Touch { force } => cli::touch::touch_vault(&vault?, &key?, force),
         Command::List { disclose } => cli::list::list_vault(&vault?, disclose),
+        Command::Completion { shell } => {
+            Sigil::clap().gen_completions_to("sigil", shell, &mut io::stdout());
+
+            Ok(())
+        }
         Command::Password { cmd } => match cmd {
             PasswordCommand::Add {
                 record,
