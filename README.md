@@ -1,4 +1,4 @@
-# Sigil [![Build Status][travis-badge]][travis]
+# Sigil
 *A password manager for the [sneakernet][sneakernet-ud]*.
 
 Sigil is a secure, [PGP][pgp]-backed password manager for your command line. It 
@@ -19,12 +19,15 @@ chances with [Dropbox][dropbox-rice] or Google Drive) and have your secrets
 sync throughout your devices, all with ease of mind that they are safe. As a
 rule of thumb, wherever a file will go, so will your vault.
 
-- [Sigil [![Build Status][travis-badge]][travis]](#sigil-build-statustravis-badgetravis)
+[![Build Status][travis-badge]][travis]
+## Table of Contents
+- [Sigil](#sigil)
+    - [Table of Contents](#table-of-contents)
     - [Features](#features)
     - [Why's](#whys)
         - [Why PGP?](#why-pgp)
         - [Why not any other cloud-based, hassle-free password manager?](#why-not-any-other-cloud-based-hassle-free-password-manager)
-        - [Why not [`pass`][pass]?](#why-not-passpass)
+        - [Why not `pass`?](#why-not-pass)
         - [Why OTPs on a PC?](#why-otps-on-a-pc)
     - [Getting started](#getting-started)
         - [Creating a vault](#creating-a-vault)
@@ -36,6 +39,7 @@ rule of thumb, wherever a file will go, so will your vault.
         - [Retrieving an OTP token](#retrieving-an-otp-token)
         - [Importing an OTP token from `otpauth://` URLs](#importing-an-otp-token-from-otpauth-urls)
         - [Removing an OTP generator](#removing-an-otp-generator)
+    - [License](#license)
 
 ## Features
 * **Secure**: as much as OpenPGP and your system
@@ -63,11 +67,11 @@ compelled to reveal metadata relating to your usage -- or worse, your secrets! -
 or you are not confident that such a leak may just be caused by a bona fide 
 implementation error.
 
-### Why not [`pass`][pass]?
-There really isn't an answer here. `pass` is just as fine, but you may find it
-troublesome handling, moving and syncing its directory-based structure. In the
-end, Sigil follows the same philosophy of security and composeability. Tab
-completion for password names is something that is not feasible using Sigil,
+### Why not `pass`?
+There really isn't an answer here.  [`pass`][pass] is just as fine, but you may 
+find it troublesome handling, moving and syncing its directory-based structure.
+In the end, Sigil follows the same philosophy of security and composeability. 
+Tab completion for password names is something that is not feasible using Sigil,
 though.
 
 ### Why OTPs on a PC?
@@ -145,6 +149,21 @@ You can import such an URL using `sigil otp import <url>`.
 ### Removing an OTP generator
 You can banish it out of existence using `sigil otp remove <name>`.
 
+## License
+Sigil is distributed under the terms of the [Mozilla Public License, v. 2.0][mpl].
+
+    Sigil - A password manager for the sneakernet
+    Copyright (C) 2018 Alberto Coscia <inbox [-at-] albertocoscia [-dot-] me>
+
+    This Source Code is subject to the terms of the Mozilla Public
+    License, v. 2.0. If a copy of the MPL was not distributed with this
+    file, You can obtain one at http://mozilla.org/MPL/2.0/.
+    
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+    Mozilla Public License for more details.
+
 [pgp]: https://tools.ietf.org/html/rfc4880
 [travis]: https://travis-ci.com/ALCC01/sigil
 [travis-badge]: https://travis-ci.com/ALCC01/sigil.svg?token=VQqRdWniwWscxaAK7t7z&branch=master
@@ -159,3 +178,4 @@ You can banish it out of existence using `sigil otp remove <name>`.
 [rustup]: https://rustup.rs/
 [histcontrol]: https://stackoverflow.com/questions/6475524/how-to-prevent-commands-to-show-up-in-bash-history
 [apple-bernardino]: https://www.bloomberg.com/news/articles/2016-02-17/apple-has-the-way-but-not-the-will-to-help-fbi-hack-your-phone
+[mpl]: http://mozilla.org/MPL/2.0/

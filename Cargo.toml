@@ -5,6 +5,7 @@ authors = ["Alberto Coscia <alberto@albertocoscia.me>"]
 description = "A password manager for the sneakernet"
 repository = "https://github.com/ALCC01/sigil"
 readme = "README.md"
+license = "MPL-2.0"
 
 [dependencies]
 structopt = "0.2"

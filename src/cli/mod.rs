@@ -1,3 +1,9 @@
+// Copyright (C) 2018 Alberto Coscia
+//
+// This Source Code Form is subject to the terms of the Mozilla Public
+// License, v. 2.0. If a copy of the MPL was not distributed with this
+// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 /// A macro to ask, validate and possibly re-ask the user a question
 macro_rules! question {
     ($validator:expr, $($arg:tt)*) => {
