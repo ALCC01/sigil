@@ -8,6 +8,8 @@ pub type Algorithm = &'static digest::Algorithm;
 
 /// Computes an N-digits OTP using the TOTP algorithm as laid out in
 /// [IETF RFC 6238](https://tools.ietf.org/html/rfc6238).
+///
+/// Returns the remaining token validity time as u64.
 /**
  * Blueprint
  *  0. Let `T0` be a Unix timestamp and `TI` a period, both expressed in the same
@@ -17,7 +19,7 @@ pub type Algorithm = &'static digest::Algorithm;
  *  1. C := floor((now - T0)/TI) as u64
  *  2. Return HOTP(K, C)
  */
-pub fn totp(T0: u64, TI: u64, K: &str, N: u32, algorithm: &HmacAlgorithm) -> u32 {
+pub fn totp(T0: u64, TI: u64, K: &str, N: u32, algorithm: &HmacAlgorithm) -> (u32, u64) {
     tracepoint!();
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -30,6 +32,8 @@ pub fn totp(T0: u64, TI: u64, K: &str, N: u32, algorithm: &HmacAlgorithm) -> u32
 /// Computes an N-digits OTP using the TOTP algorithm as laid out in
 /// [IETF RFC 6238](https://tools.ietf.org/html/rfc6238).
 /// Helper method that allows testing
+///
+/// Returns the remaining token validity time as u64.
 pub fn totp_with_now(
     T0: u64,
     TI: u64,
@@ -37,7 +41,7 @@ pub fn totp_with_now(
     N: u32,
     now: u64,
     algorithm: &HmacAlgorithm,
-) -> u32 {
+) -> (u32, u64) {
     tracepoint!();
     // (1)
     // Cast to f64 so that we can have the precision necessary to use floor as
@@ -46,7 +50,7 @@ pub fn totp_with_now(
 
     // (2)
     tracepoint!();
-    hotp(K, C, N, &algorithm)
+    (hotp(K, C, N, &algorithm), TI - ((now - T0) % TI))
 }
 
 /// Computes an N-digits OTP using the HOTP algorithm as laid out in
@@ -150,17 +154,15 @@ mod tests {
     #[test]
     fn totp_rfc_values_sha1() {
         for value in 0..RFC_TOTP_TIMES.len() {
-            assert_eq!(
-                otp::totp_with_now(
-                    0,
-                    30,
-                    &RFC_TOTP_SECRET_SHA1,
-                    8,
-                    RFC_TOTP_TIMES[value],
-                    &HmacAlgorithm::SHA1
-                ),
-                RFC_TOTP_VALUES_SHA1[value as usize]
+            let (v, _) = otp::totp_with_now(
+                0,
+                30,
+                &RFC_TOTP_SECRET_SHA1,
+                8,
+                RFC_TOTP_TIMES[value],
+                &HmacAlgorithm::SHA1,
             );
+            assert_eq!(v, RFC_TOTP_VALUES_SHA1[value as usize]);
         }
     }
 
@@ -173,17 +175,15 @@ mod tests {
     #[test]
     fn totp_rfc_values_sha256() {
         for value in 0..RFC_TOTP_TIMES.len() {
-            assert_eq!(
-                otp::totp_with_now(
-                    0,
-                    30,
-                    &RFC_TOTP_SECRET_SHA256,
-                    8,
-                    RFC_TOTP_TIMES[value],
-                    &HmacAlgorithm::SHA256
-                ),
-                RFC_TOTP_VALUES_SHA256[value as usize]
+            let (v, _) = otp::totp_with_now(
+                0,
+                30,
+                &RFC_TOTP_SECRET_SHA256,
+                8,
+                RFC_TOTP_TIMES[value],
+                &HmacAlgorithm::SHA256,
             );
+            assert_eq!(v, RFC_TOTP_VALUES_SHA256[value as usize]);
         }
     }
 
@@ -196,17 +196,15 @@ mod tests {
     #[test]
     fn totp_rfc_values_sha512() {
         for value in 0..RFC_TOTP_TIMES.len() {
-            assert_eq!(
-                otp::totp_with_now(
-                    0,
-                    30,
-                    &RFC_TOTP_SECRET_SHA512,
-                    8,
-                    RFC_TOTP_TIMES[value],
-                    &HmacAlgorithm::SHA512
-                ),
-                RFC_TOTP_VALUES_SHA512[value as usize]
+            let (v, _) = otp::totp_with_now(
+                0,
+                30,
+                &RFC_TOTP_SECRET_SHA512,
+                8,
+                RFC_TOTP_TIMES[value],
+                &HmacAlgorithm::SHA512,
             );
+            assert_eq!(v, RFC_TOTP_VALUES_SHA512[value as usize]);
         }
     }
 }

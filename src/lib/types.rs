@@ -251,7 +251,9 @@ impl OtpRecord {
 
     /// Generate a token for this record. `counter` is required for Otp::Hotp
     /// and ignored by Otp::Totp
-    pub fn generate_token(&self, counter: Option<u64>) -> Result<String, OtpError> {
+    ///
+    /// u64 is the token validity time for Totp and u64::MAX for Hotp
+    pub fn generate_token(&self, counter: Option<u64>) -> Result<(String, u64), OtpError> {
         match self {
             OtpRecord::Totp {
                 secret,
@@ -260,14 +262,17 @@ impl OtpRecord {
                 digits,
                 ..
             } => {
-                let r = otp::totp(0, *period, secret, *digits, &algorithm);
+                let (r, time) = otp::totp(0, *period, secret, *digits, &algorithm);
                 // RFC 4226 Requires 6-digit values and suggests 7 and 8-digit
                 // values, so we 0-pad shorter numbers accordingly
-                Ok(match digits {
-                    7 => format!("{:07}", r),
-                    8 => format!("{:08}", r),
-                    _ => format!("{:06}", r),
-                })
+                Ok((
+                    match digits {
+                        7 => format!("{:07}", r),
+                        8 => format!("{:08}", r),
+                        _ => format!("{:06}", r),
+                    },
+                    time,
+                ))
             }
             OtpRecord::Hotp {
                 secret,
@@ -280,11 +285,14 @@ impl OtpRecord {
 
                 // RFC 4226 Requires 6-digit values and suggests 7 and 8-digit
                 // values, so we 0-pad shorter numbers accordingly
-                Ok(match digits {
-                    7 => format!("{:07}", r),
-                    8 => format!("{:08}", r),
-                    _ => format!("{:06}", r),
-                })
+                Ok((
+                    match digits {
+                        7 => format!("{:07}", r),
+                        8 => format!("{:08}", r),
+                        _ => format!("{:06}", r),
+                    },
+                    u64::max_value(),
+                ))
             }
         }
     }

@@ -15,7 +15,7 @@ teardown() {
 move_input() {
     INPUT=$BATS_TEST_DIRNAME/inputs/$1
     cp $INPUT $SIGIL_VAULT.txt
-    gpg --output "$SIGIL_VAULT" --yes --armor --recipient "$GPGKEY" --encrypt "$SIGIL_VAULT.txt"
+    gpg --output "$SIGIL_VAULT" --yes --armor --recipient "$SIGIL_GPGKEY" --encrypt "$SIGIL_VAULT.txt"
     rm $SIGIL_VAULT.txt
 }
 
@@ -98,7 +98,7 @@ compare_output() {
     move_input "otp_add"
 
     run $SIGIL otp import "otpauth://totp/Bob:service?issuer=service&secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ"
-    #echo $output
+    echo $output
     [ "$status" -eq 0 ]
     
     compare_output "otp_add_totp"
@@ -117,21 +117,21 @@ compare_output() {
 @test "otp_token_totp" {
     move_input "otp_token_totp"
 
-    EXPECTED=$(oathtool --totp --base32 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ)
+    EXPECTED="Your token is $(oathtool --totp --base32 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ)"
     run $SIGIL otp token Bob:service
-    echo $output
+    echo ${lines[0]}
     echo $EXPECTED
     [ "$status" -eq 0 ]
-    [ "$output" == $EXPECTED ]
+    [ "${lines[0]}" == "$EXPECTED" ]
 }
 
 @test "otp_token_hotp" {
     move_input "otp_token_hotp"
 
-    EXPECTED=$(oathtool --hotp --base32 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ --counter 51064264)
+    EXPECTED="Your token is $(oathtool --hotp --base32 GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ --counter 51064264)"
     run $SIGIL otp token Bob:service 51064264
     echo $output
     echo $EXPECTED
     [ "$status" -eq 0 ]
-    [ "$output" == $EXPECTED ]
+    [ "$output" == "$EXPECTED" ]
 }

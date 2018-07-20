@@ -61,14 +61,10 @@ pub enum OtpCommand {
     #[structopt(name = "add")]
     /// Add an OTP secret to a vault. Interactive mode if no argument is provided
     Add {
-        #[structopt(
-            /*requires = "secret",*/ long = "totp", raw(takes_value = "false"), group = "algo"
-        )]
+        #[structopt(long = "totp", raw(takes_value = "false"), group = "algo")]
         /// Use TOTP as the generation algorithm
         totp: bool,
-        #[structopt(
-            /*requires = "secret",*/ long = "hotp", raw(takes_value = "false"), group = "algo"
-        )]
+        #[structopt(long = "hotp", raw(takes_value = "false"), group = "algo")]
         /// Use HOTP as the generation algorithm
         hotp: bool,
         /// A label for this secret

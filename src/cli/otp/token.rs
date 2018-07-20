@@ -1,5 +1,6 @@
 use failure::Error;
 use gpgme::Context;
+use lib::types::OtpRecord;
 use lib::utils;
 use std::path::PathBuf;
 
@@ -22,8 +23,11 @@ pub fn get_token(
     let record = vault.get_otp_record(&record_id)?;
 
     // (2)
-    tracepoint!();
-    println!("{}", record.generate_token(counter)?);
+    let (token, time) = record.generate_token(counter)?;
+    println!("Your token is {}", token);
+    if let OtpRecord::Totp { .. } = record {
+        println!("This token is valid for the next {} seconds", time)
+    }
 
     Ok(())
 }
