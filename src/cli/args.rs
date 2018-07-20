@@ -3,19 +3,20 @@ use failure::Error;
 use lib::types::{HmacAlgorithm, OtpRecord, Record};
 use lib::utils;
 use std::env;
+use std::io;
 use std::path::PathBuf;
-use structopt::clap::ArgGroup;
+use structopt::clap::{ArgGroup, Shell};
+use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
-#[structopt(name = "sigil", about = "GPG-backed password manager")]
+#[structopt(name = "sigil")]
 pub struct Sigil {
     #[structopt(short = "V", long = "vault", parse(from_os_str))]
-    /// Path to the vault. Required if not set by the SIGIL_VAULT environment
-    /// variable
+    /// Path to the vault. Defaults to the SIGIL_VAULT environment variable
     pub vault: Option<PathBuf>,
     #[structopt(short = "K", long = "key")]
     /// The GPG key to use for encryption. Required for operations that will
-    /// write on a vault. Defaults to the GPGKEY environment variable
+    /// write on a vault. Defaults to the SIGIL_GPGKEY environment variable
     pub key: Option<String>,
     #[structopt(subcommand)]
     pub cmd: Command,
@@ -24,13 +25,13 @@ pub struct Sigil {
 #[derive(Debug, StructOpt)]
 pub enum Command {
     #[structopt(name = "password")]
-    /// Operate on password records in a vault
+    /// Operate on passwords in a vault
     Password {
         #[structopt(subcommand)]
         cmd: PasswordCommand,
     },
     #[structopt(name = "otp")]
-    /// Operate on OTP records in a vault
+    /// Operate on OTP generators in a vault
     Otp {
         #[structopt(subcommand)]
         cmd: OtpCommand,
@@ -43,11 +44,18 @@ pub enum Command {
         force: bool,
     },
     #[structopt(name = "ls")]
-    /// List all records in a vault
+    /// List all secrets in a vault
     List {
         #[structopt(long = "disclose", raw(takes_value = "false"))]
         /// Disclose secrets
         disclose: bool,
+    },
+    #[structopt(name = "completion")]
+    /// Generate a completion script for Sigil
+    Completion {
+        #[structopt(raw(possible_values = "&Shell::variants()"))]
+        /// The shell that will be using the script
+        shell: Shell,
     },
 }
 
@@ -59,7 +67,7 @@ fn algo_arg_group() -> ArgGroup<'static> {
 #[structopt(raw(group = "algo_arg_group()"))]
 pub enum OtpCommand {
     #[structopt(name = "add")]
-    /// Add an OTP secret to a vault. Interactive mode if no argument is provided
+    /// Add an OTP generator to a vault. Interactive mode if no argument is provided
     Add {
         #[structopt(long = "totp", raw(takes_value = "false"), group = "algo")]
         /// Use TOTP as the generation algorithm
@@ -69,8 +77,8 @@ pub enum OtpCommand {
         hotp: bool,
         /// A label for this secret
         #[structopt(requires = "secret")]
-        record: Option<String>,
-        #[structopt(raw(requires_all = "&[\"algo\", \"record\"]"))]
+        name: Option<String>,
+        #[structopt(raw(requires_all = "&[\"algo\", \"name\"]"))]
         /// The secret  
         secret: Option<String>,
         #[structopt(requires = "secret", long = "issuer")]
@@ -96,15 +104,15 @@ pub enum OtpCommand {
     /// Remove an OTP generator
     Remove {
         #[structopt()]
-        /// Record name
-        record: String,
+        /// Generator name
+        name: String,
     },
     #[structopt(name = "token")]
     /// Generate an OTP token
     GetToken {
         #[structopt()]
-        /// Record name
-        record: String,
+        /// Generator name
+        name: String,
         /// Counter for HOTP, ignored for TOTP
         counter: Option<u64>,
     },
@@ -117,7 +125,7 @@ pub enum PasswordCommand {
     Add {
         #[structopt(requires = "password")]
         /// A label for this password
-        record: Option<String>,
+        name: Option<String>,
         #[structopt()]
         /// The password
         password: Option<String>,
@@ -132,17 +140,17 @@ pub enum PasswordCommand {
         home: Option<String>,
     },
     #[structopt(name = "rm")]
-    /// Remove a record from a vault
+    /// Remove a password from a vault
     Remove {
-        /// Record name
-        record: String,
+        /// Password name
+        name: String,
     },
     #[structopt(name = "get")]
     /// Get a password from a vault
     GetPassword {
         #[structopt()]
-        /// Record name
-        record: String,
+        /// Password name
+        name: String,
     },
     #[structopt(name = "generate")]
     /// Generate a random password
@@ -175,32 +183,37 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
     match sigil.cmd {
         Command::Touch { force } => cli::touch::touch_vault(&vault?, &key?, force),
         Command::List { disclose } => cli::list::list_vault(&vault?, disclose),
+        Command::Completion { shell } => {
+            Sigil::clap().gen_completions_to("sigil", shell, &mut io::stdout());
+
+            Ok(())
+        }
         Command::Password { cmd } => match cmd {
             PasswordCommand::Add {
-                record,
+                name,
                 password,
                 username,
                 email,
                 home,
             } => {
-                if record.is_some() && password.is_some() {
+                if name.is_some() && password.is_some() {
                     // Safe unwraps because we checked them before and they are required args
                     cli::password::add_record(
                         &vault?,
                         &key?,
                         ctx?,
                         Record::new(password.unwrap(), username, email, home),
-                        record.unwrap(),
+                        name.unwrap(),
                     )
                 } else {
                     cli::password::add_record_interactive(&vault?, &key?, ctx?)
                 }
             }
-            PasswordCommand::Remove { record } => {
-                cli::password::remove_record(&vault?, &key?, ctx?, record)
+            PasswordCommand::Remove { name } => {
+                cli::password::remove_record(&vault?, &key?, ctx?, name)
             }
-            PasswordCommand::GetPassword { record } => {
-                cli::password::get_password(&vault?, ctx?, &record)
+            PasswordCommand::GetPassword { name } => {
+                cli::password::get_password(&vault?, ctx?, &name)
             }
             PasswordCommand::Generate { chars } => cli::password::generate_password(chars),
         },
@@ -209,13 +222,13 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
                 totp,
                 hotp,
                 issuer,
-                record,
+                name,
                 secret,
                 algorithm,
                 digits,
                 period,
             } => {
-                if secret.is_some() && record.is_some() {
+                if secret.is_some() && name.is_some() {
                     // Safe unwraps because we checked them before and they are required args
                     if totp {
                         cli::otp::add_record(
@@ -229,7 +242,7 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
                                 digits.unwrap_or(6),
                                 period.unwrap_or(30),
                             ),
-                            record.unwrap(),
+                            name.unwrap(),
                         )
                     } else if hotp {
                         cli::otp::add_record(
@@ -242,7 +255,7 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
                                 algorithm.unwrap_or(HmacAlgorithm::SHA1),
                                 digits.unwrap_or(6),
                             ),
-                            record.unwrap(),
+                            name.unwrap(),
                         )
                     } else {
                         unreachable!()
@@ -252,10 +265,10 @@ pub fn match_args(sigil: Sigil) -> Result<(), Error> {
                 }
             }
             OtpCommand::ImportUrl { url } => cli::otp::import_url(&vault?, &key?, ctx?, &url),
-            OtpCommand::GetToken { record, counter } => {
-                cli::otp::get_token(&vault?, ctx?, &record, counter)
+            OtpCommand::GetToken { name, counter } => {
+                cli::otp::get_token(&vault?, ctx?, &name, counter)
             }
-            OtpCommand::Remove { record } => cli::otp::remove_record(&vault?, &key?, ctx?, record),
+            OtpCommand::Remove { name } => cli::otp::remove_record(&vault?, &key?, ctx?, name),
         },
     }
 }

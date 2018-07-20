@@ -2,6 +2,9 @@
 name = "sigil"
 version = "0.1.0"
 authors = ["Alberto Coscia <alberto@albertocoscia.me>"]
+description = "A password manager for the sneakernet"
+repository = "https://github.com/ALCC01/sigil"
+readme = "README.md"
 
 [dependencies]
 structopt = "0.2"
