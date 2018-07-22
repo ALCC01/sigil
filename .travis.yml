@@ -21,3 +21,7 @@ script:
   - cargo test --verbose --all
   - ./tests/setup.sh
   - ./tests/cli.sh
+
+notifications:
+  email:
+    on_success: never
