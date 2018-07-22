@@ -19,6 +19,9 @@ chances with [Dropbox][dropbox-rice] or Google Drive) and have your secrets
 sync throughout your devices, all with ease of mind that they are safe. As a
 rule of thumb, wherever a file will go, so will your vault.
 
+[Releases][releases] are [signed][signature], as are single commits on this
+repository.
+
 [![Build Status][travis-badge]][travis]
 ## Table of Contents
 - [Sigil](#sigil)
@@ -30,6 +33,10 @@ rule of thumb, wherever a file will go, so will your vault.
         - [Why not `pass`?](#why-not-pass)
         - [Why OTPs on a PC?](#why-otps-on-a-pc)
     - [Getting started](#getting-started)
+        - [Installation](#installation)
+        - [Bleeding edge installation](#bleeding-edge-installation)
+        - [Setting up](#setting-up)
+    - [Basic usage](#basic-usage)
         - [Creating a vault](#creating-a-vault)
         - [Adding a password](#adding-a-password)
         - [Retrieving a password](#retrieving-a-password)
@@ -39,6 +46,7 @@ rule of thumb, wherever a file will go, so will your vault.
         - [Retrieving an OTP token](#retrieving-an-otp-token)
         - [Importing an OTP token from `otpauth://` URLs](#importing-an-otp-token-from-otpauth-urls)
         - [Removing an OTP generator](#removing-an-otp-generator)
+    - [Changelog](#changelog)
     - [License](#license)
 
 ## Features
@@ -94,25 +102,43 @@ FIDO2-like authenticator holding your PGP key.
 
 ## Getting started
 
-Sigil is currently developed using Rust 1.27, you can use [rustup.rs][rustup]
-to install it alongside with Cargo. Sigil also relies on GPGME as provided by 
-`libgpgme11-dev`, which is available on many Linux distros.
+### Installation
+Sigil relies on GPGME as provided by `libgpgme11-dev`, which is available on 
+many Linux distros and should probably be already installed. In case it's
+missing, please install it.
 
-* `cargo install --git https://github.com/ALCC01/sigil`
-* Make sure your `PATH` contains `$HOME/.cargo/bin` 
-* In your `.bashrc` file (or its equivalent for your shell of choice)
-    * Add `export SIGIL_VAULT="$HOME/.sigil.vault"` or whatever path you want
+To install the latest release of Sigil, use `sh -c "$(curl -sSL https://raw.githubusercontent.com/ALCC01/sigil/master/tools/install.sh)"`.
+Please note that though release files are [signed][signature], **this installer
+does not verifiy them**.
+
+### Bleeding edge installation
+Sigil is currently developed using Rust 1.27, you can use [rustup.rs][rustup]
+to install it alongside with Cargo.
+
+To compile and install it, use `cargo install --git ssh://git@github.com/ALCC01/sigil`.
+Make sure your `PATH` contains `$HOME/.cargo/bin`.
+
+### Setting up
+After the installation is over, there are other steps you may want to take to
+increase the usability and security of Sigil.
+
+In your `.bashrc` file (or its equivalent for your shell of choice)
+* Add `export SIGIL_VAULT="$HOME/.sigil.vault"` or whatever path you want
 your vault to be written to
-    * Add `export SIGIL_GPGKEY="me@example.com"` or pretty much that could be
-used as a `--recipient` with `gpg --encrypt`
-    * Then `source` it again (or restart your shell)
-* The following instructions will assume that you export these environment 
+* Add `export SIGIL_GPGKEY="me@example.com"` or pretty much anything that 
+could be used as a `--recipient` with `gpg --encrypt`, hinting which key you're
+going to encrypt your vault with.
+
+The following instructions will assume that you export these environment 
 variables, otherwise you'll neet to use the `--vault` and `--key` arguments
-* You may also want to **avoid your shell saving your password in its history** 
+
+You may also want to **avoid your shell saving your password in its history** 
 when you provide it as a command line argument (using `bash` this is possible
 adding `HISTIGNORE="$HISTIGNORE:sigil *"` to your `.bashrc` file). If feasible,
 you may want to avoid using the CLI arguments altogether and rely on the 
 interactive mode.
+
+## Basic usage
 
 ### Creating a vault
 You can create your vault using `sigil touch`. And you're done.
@@ -150,6 +176,9 @@ You can import such an URL using `sigil otp import <url>`.
 ### Removing an OTP generator
 You can banish it out of existence using `sigil otp remove <name>`.
 
+## Changelog
+Please refer to [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 Sigil is distributed under the terms of the [Mozilla Public License, v. 2.0][mpl].
 
@@ -180,3 +209,5 @@ Sigil is distributed under the terms of the [Mozilla Public License, v. 2.0][mpl
 [histcontrol]: https://stackoverflow.com/questions/6475524/how-to-prevent-commands-to-show-up-in-bash-history
 [apple-bernardino]: https://www.bloomberg.com/news/articles/2016-02-17/apple-has-the-way-but-not-the-will-to-help-fbi-hack-your-phone
 [mpl]: http://mozilla.org/MPL/2.0/
+[signature]: https://keybase.io/alcc01/pgp_keys.asc?fingerprint=edde3aa35f930c7493f30b9341ed5689f4f70509
+[releases]: https://github.com/ALCC01/sigil/releases

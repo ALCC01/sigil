@@ -1,4 +1,4 @@
-# Sigil
+# Changelog
 Only user facing changes should be included.
 
 ## Release series
