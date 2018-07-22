@@ -4,6 +4,8 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+// We don't need debug logs in release builds
+#[cfg(debug_assertions)]
 extern crate env_logger; // TODO env_logger may not be a good fit
 #[macro_use]
 extern crate structopt;
@@ -37,8 +39,8 @@ use cli::args::{match_args, Sigil};
 use structopt::StructOpt;
 
 fn main() {
-    env_logger::init();
-    tracepoint!();
+    // We don't need debug logs in release builds
+    #[cfg(debug_assertions)] env_logger::init();
     // Parse CLI arguments
     let sigil = Sigil::from_args();
     // Match them with a subcommand and run it
