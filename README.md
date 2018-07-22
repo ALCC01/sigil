@@ -93,12 +93,13 @@ If you want to be extra sure, you may also combine your vault with an external,
 FIDO2-like authenticator holding your PGP key.
 
 ## Getting started
-* Sigil is currently developed using Rust 1.28, you can use [rustup.rs][rustup]
-to install it alongside with Cargo
+
+Sigil is currently developed using Rust 1.27, you can use [rustup.rs][rustup]
+to install it alongside with Cargo. Sigil also relies on GPGME as provided by 
+`libgpgme11-dev`, which is available on many Linux distros.
+
 * `cargo install --git https://github.com/ALCC01/sigil`
-* Make sure your `PATH` contains `$HOME/.cargo/bin`
-* Sigil also relies on GPGME as provided by `libgpgme11-dev`, which is available
-on many Linux distros
+* Make sure your `PATH` contains `$HOME/.cargo/bin` 
 * In your `.bashrc` file (or its equivalent for your shell of choice)
     * Add `export SIGIL_VAULT="$HOME/.sigil.vault"` or whatever path you want
 your vault to be written to
